@@ -12,7 +12,7 @@
   const label=document.createElement('span');label.className='toc-label';label.textContent='目录';
   toolbar.append(toggle,label);sidebar.append(toolbar,panel);layout.prepend(sidebar);layout.classList.add('has-toc');
   toggle.type='button';toggle.setAttribute('aria-controls',panel.id);
-  toggle.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16M9 5v14"/></svg>';
+  toggle.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h12M4 18h8"/></svg>';
   const script=document.currentScript?.src||document.querySelector('script[src$="reader.js"]')?.src;
   const storageKey='file-index:outline:v2:'+(script?new URL('.',script).href:location.pathname);
   const stores=[];
