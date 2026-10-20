@@ -22,6 +22,8 @@
     summary::marker { color: var(--link); font-size: 11px; }
     summary:hover, .leaf:hover { background: var(--hover); }
     .folder { font-weight: 550; }
+    .folder-link { color: inherit; }
+    .folder-link:hover { color: var(--link); }
     .leaf { display: block; padding: 5px 8px; border-radius: 5px; }
     @media (max-width: 560px) { main { padding: 24px 16px 48px; } .tree ul { padding-left: 15px; } }
     @media (prefers-color-scheme: dark) { :root { --bg: #202124; --ink: #e4e6eb; --muted: #a6acb6; --line: #383c43; --hover: #352b49; --link: #c4b5fd; } }
@@ -36,7 +38,7 @@
       <!-- NAV_LINKS: 仅上一级、总索引、课程页面；报告作为 TREE 内的普通文件叶节点。 -->
       <nav aria-label="导航">{{NAV_LINKS}}</nav>
     </header>
-    <!-- TREE: 同页递归 details/summary 直到实际文件；文件夹不能替换为子 index.html 链接。报告.html 仅一个文件叶节点；资料内按中文稿、原文稿（源 PDF/Word）、在线入口排序；默认无英文 MD/HTML。 -->
+    <!-- TREE: 同页递归 details/summary 直到实际文件；保留同页递归树；文件夹名称另链接到集中存放的子目录页，箭头负责折叠。报告.html 仅一个文件叶节点；资料内按中文稿、原文稿（源 PDF/Word）、在线入口排序；默认无英文 MD/HTML。 -->
 
     <ul class="tree" aria-label="资料目录">{{TREE}}</ul>
   </main>

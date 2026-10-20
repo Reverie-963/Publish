@@ -2,7 +2,7 @@
 """Portable offline file index; source files are never rewritten."""
 import argparse, csv, hashlib, html, json, os, re, shutil, subprocess, tempfile, zipfile
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urlparse, unquote
 
 MARKER='<!-- codex-folder-index v2 -->'
 SKILL=Path(__file__).resolve().parent.parent
@@ -75,6 +75,14 @@ def office_pdf(src,out):
   if not result.is_file():raise RuntimeError('Office 转换没有生成 PDF（文件可能损坏或不支持）')
   dest=out.parent/'document.pdf';shutil.copy2(result,dest);return dest
 
+def office_export(src,folder,format_spec):
+ binary=shutil.which('soffice') or shutil.which('libreoffice')
+ if not binary:raise RuntimeError('缺少 LibreOffice，无法制作网页正文')
+ command([binary,'-env:UserInstallation='+(folder/'profile').as_uri(),'--headless','--convert-to',format_spec,'--outdir',folder,src],120)
+ result=folder/(src.stem+'.'+format_spec.split(':')[0])
+ if not result.is_file():raise RuntimeError('未生成可读取的网页转换结果')
+ return result
+
 def workbook(src,out,max_cells):
  import openpyxl
  wb=openpyxl.load_workbook(src,data_only=False,read_only=False);cached=openpyxl.load_workbook(src,data_only=True,read_only=False)
@@ -121,7 +129,20 @@ def render(src,out,args,mapping):
   if r.returncode:raise RuntimeError('Markdown 渲染失败：'+r.stderr[-350:])
   data=json.loads(r.stdout);body=data['body'];notes=data['issues'];title=''
  elif ext in OFFICE:
-  pdf=office_pdf(src,out);body,notes=pdf_preview(pdf,out,args.max_pages)
+  pdf=office_pdf(src,out);snap,notes=pdf_preview(pdf,out,args.max_pages)
+  if ext in {'.doc','.docx','.odt','.rtf','.xls','.ods'}:
+   try:
+    with tempfile.TemporaryDirectory(prefix='index-web-') as temp:
+     if ext in {'.xls','.ods'}:
+      exported=office_export(src,Path(temp),'xlsx');body,extra=workbook(exported,out,args.max_cells);notes+=extra
+     else:
+      from office_web import writer_html
+      exported=office_export(src,Path(temp),'html:HTML (StarWriter)');body=writer_html(exported,src,out,mapping)
+    body+='<details class="print-layout"><summary>查看原版式</summary>'+snap+'</details>'
+    notes.append('当前为连续网页排版；分页及复杂布局请查看原版式。')
+   except Exception as e:
+    body=snap;notes.append('网页正文转换未完成，当前显示原版式：'+str(e))
+  else:body=snap
  elif ext=='.pdf':body,notes=pdf_preview(src,out,args.max_pages)
  elif ext in {'.xlsx','.xlsm'}:
   body,notes=workbook(src,out,args.max_cells)
@@ -179,9 +200,10 @@ def main():
   (assets/'katex').mkdir(exist_ok=True);shutil.copy2(katex/'katex.min.css',assets/'katex/katex.min.css');shutil.copytree(katex/'fonts',assets/'katex/fonts',dirs_exist_ok=True)
   shutil.copy2(katex.parent/'LICENSE',assets/'katex/LICENSE')
  else:write(assets/'katex/katex.min.css','/* Markdown math dependencies unavailable. */')
- excluded={'node_modules','assets','source_assets','__pycache__',*args.exclude};sources=[]
+ excluded={'node_modules','assets','source_assets','__pycache__',*args.exclude};sources=[];directories=[]
  for directory,dirs,files in os.walk(root):
   dirs[:]=sorted([d for d in dirs if not d.startswith('.') and d not in excluded and not (Path(directory)/d).is_symlink()],key=natural)
+  if Path(directory)!=root:directories.append(Path(directory).relative_to(root).as_posix())
   for name in sorted(files,key=natural):
    f=Path(directory)/name
    if f.is_symlink() or name.startswith('.') or f==index:continue
@@ -190,8 +212,9 @@ def main():
    if name=='index.html' and ('codex-index-state:start' in f.read_text(errors='replace') or MARKER in f.read_text(errors='replace')):continue
    sources.append(f)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
- version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','assets/reader.css','assets/preview.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
- links_hash=hashlib.sha256(json.dumps(sorted(str(f.relative_to(root)) for f in sources)).encode()).hexdigest()
+ for directory in directories:mapping[str(root/directory)]=str(work/'folders'/hashlib.sha256(directory.encode()).hexdigest()[:16]/'index.html')
+ version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/office_web.py','assets/reader.css','assets/preview.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
+ links_hash=hashlib.sha256(json.dumps(sorted([str(f.relative_to(root)) for f in sources]+directories)).encode()).hexdigest()
  records=[];reused=0
  for src in sources:
   sourcepath=src.relative_to(root).as_posix();out=Path(mapping[str(src)]);out.parent.mkdir(parents=True,exist_ok=True);sha=digest(src);oldrec=previous.get(sourcepath)
@@ -213,29 +236,47 @@ def main():
    write(out,page(item['label'],content,out,root,index))
    records.append({'id':'link-'+str(i),'path':item.get('folder','在线入口')+'/'+item['label'],'label':item['label'],'type':'链接','source':item['url'],'preview':rel(index,out),'status':'external','external':True,'notes':[]})
  tree={}
+ for directory in directories:
+  branch=tree
+  for folder in directory.split('/'):branch=branch.setdefault(folder,{})
  for f in records:
   branch=tree
   for folder in f['path'].split('/')[:-1]:branch=branch.setdefault(folder,{})
   branch.setdefault(None,[]).append(f)
- def leaf(f):
-  return '<a class="leaf" href="'+ESC(f['preview'],quote=True)+'">'+ESC(f['label'])+'</a>'
- def branch_html(node):
+ folders={}
+ def collect(node,prefix=''):
+  for k,v in node.items():
+   if k is not None:
+    key=prefix+k;folders[key]={'node':v,'page':work/'folders'/hashlib.sha256(key.encode()).hexdigest()[:16]/'index.html'};collect(v,key+'/')
+ collect(tree)
+ def branch_html(node,current,prefix=''):
   text=''
   for k,v in node.items():
-   if k is None:text+=''.join('<li>'+leaf(f)+'</li>' for f in v)
-   else:text+='<li><details><summary class="folder">'+ESC(k)+'</summary><ul>'+branch_html(v)+'</ul></details></li>'
+   if k is None:
+    for f in v:
+     target=root/Path(unquote(f['preview']))
+     text+='<li><a class="leaf" href="'+ESC(rel(current,target),quote=True)+'">'+ESC(f['label'])+'</a></li>'
+   else:
+    key=prefix+k;href=rel(current,folders[key]['page'])
+    text+='<li><details><summary class="folder"><a class="folder-link" href="'+ESC(href,quote=True)+'" title="进入文件夹">'+ESC(k)+'</a></summary><ul>'+branch_html(v,current,key+'/')+'</ul></details></li>'
   return text
- title=args.title or root.name
  template=(SKILL/'assets/navigation-template.html').read_text()
- substitutions={'TITLE':ESC(title),'NAV_LINKS':'','TREE':branch_html(tree)}
- body=template.replace('<!doctype html>','<!doctype html>\n'+MARKER)
- body=re.sub(r'\{\{(TITLE|NAV_LINKS|TREE)\}\}',lambda m:substitutions[m.group(1)],body)
- write(index,body)
+ def index_page(current,title,node,prefix='',nav=''):
+  substitutions={'TITLE':ESC(title),'NAV_LINKS':nav,'TREE':branch_html(node,current,prefix)}
+  body=template.replace('<!doctype html>','<!doctype html>\n'+MARKER)
+  write(current,re.sub(r'\{\{(TITLE|NAV_LINKS|TREE)\}\}',lambda m:substitutions[m.group(1)],body))
+ index_page(index,args.title or root.name,tree)
+ directory_records=[]
+ for key,data in folders.items():
+  current=data['page'];parent=key.rpartition('/')[0];up=folders[parent]['page'] if parent else index
+  nav='<a href="'+rel(current,up)+'" data-parent>上一级</a><a href="'+rel(current,index)+'" data-root>总索引</a>'
+  index_page(current,key.split('/')[-1],data['node'],key+'/',nav)
+  directory_records.append({'path':key,'preview':rel(index,current)})
  # Maintain a previously generated alias only. Never replace an arbitrary index.html.
  legacy=root/'index.html'
  if legacy!=index and legacy.exists() and ('codex-index-state:start' in legacy.read_text(errors='replace') or MARKER in legacy.read_text(errors='replace')):
   write(legacy,'<!doctype html>'+MARKER+'<meta charset="utf-8"><meta http-equiv="refresh" content="0;url='+ESC(quote(args.name),quote=True)+'"><a href="'+quote(args.name)+'">打开文件索引</a>')
- write(manifest,json.dumps({'generator':'codex-folder-index-v2','version':version,'entry':args.name,'files':records},ensure_ascii=False,indent=2))
+ write(manifest,json.dumps({'generator':'codex-folder-index-v2','version':version,'entry':args.name,'files':records,'directories':directory_records},ensure_ascii=False,indent=2))
  print(json.dumps({'entry':str(index),'files':len(records),'reused':reused,'errors':[{'path':x['path'],'notes':x['notes']} for x in records if x['status']=='error'],'unsupported':[x['path'] for x in records if x['status']=='unsupported']},ensure_ascii=False,indent=2))
 
 if __name__=='__main__':main()

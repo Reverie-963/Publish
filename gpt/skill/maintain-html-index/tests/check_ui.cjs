@@ -16,8 +16,8 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
  const d=open(),w=d.window,doc=w.document,branches=[...doc.querySelectorAll('.tree details')],button=doc.querySelector('[data-tree-toggle]');
  assert(branches.length>1);assert.equal(doc.querySelectorAll('button').length,1);
  assert(!doc.querySelector('aside,iframe,input,select,.cards,.viewer'));
- assert.equal(doc.querySelectorAll('.tree a').length,records.length);
- assert.deepEqual([...doc.querySelectorAll('.tree a')].map(a=>a.getAttribute('href')).sort(),records.map(r=>r.preview).sort());
+ assert.equal(doc.querySelectorAll('.tree a.leaf').length,records.length);
+ assert.deepEqual([...doc.querySelectorAll('.tree a.leaf')].map(a=>a.getAttribute('href')).sort(),records.map(r=>r.preview).sort());
  assert.equal(button.textContent.trim(),'');assert(button.querySelector('svg'));assert.equal(button.type,'button');
  assert.equal(w.getComputedStyle(button).borderTopWidth,'0px');assert.equal(w.getComputedStyle(button).boxShadow,'none');
  await tick();assert.equal(button.getAttribute('aria-label'),'全部展开');button.click();
@@ -32,6 +32,18 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
  assert.equal(restored.window.scrollY,315);assert.equal(restored.window.document.querySelector('[data-tree-toggle]').title,'全部收起');
  const blocked=open(html,null,true);blocked.window.document.querySelector('[data-tree-toggle]').click();assert([...blocked.window.document.querySelectorAll('details')].every(n=>n.open));
  const empty=open(html.replace(/<ul class="tree"[\s\S]*?<\/main>/,'<ul class="tree"></ul></main>'));assert(empty.window.document.querySelector('[data-tree-toggle]').disabled);
+ // Folder names are real standalone navigation targets; their arrows stay native summaries.
+ const directoryRecords=JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).directories;
+ assert.equal(doc.querySelectorAll('.folder-link').length,directoryRecords.length);
+ for(const dir of directoryRecords){
+  const file=path.join(root,decodeURIComponent(dir.preview)),fd=new JSDOM(fs.readFileSync(file,'utf8'));doms.push(fd);
+  const page=fd.window.document,parent=dir.path.includes('/')?dir.path.slice(0,dir.path.lastIndexOf('/')):'';
+  const expected=parent?path.join(root,decodeURIComponent(directoryRecords.find(x=>x.path===parent).preview)):path.join(root,'00 - 文件索引.html');
+  assert.equal(path.resolve(path.dirname(file),decodeURIComponent(page.querySelector('[data-parent]').getAttribute('href'))),expected);
+  assert.equal(path.resolve(path.dirname(file),decodeURIComponent(page.querySelector('[data-root]').getAttribute('href'))),path.join(root,'00 - 文件索引.html'));
+  assert.equal(page.querySelectorAll('a.leaf').length,records.filter(x=>x.path.startsWith(dir.path+'/')).length);
+  for(const link of page.querySelectorAll('a[href]'))assert(fs.existsSync(path.resolve(path.dirname(file),decodeURIComponent(link.getAttribute('href')))));
+ }
  // Every format enters an independently styled reading page with one return link.
  for(const record of records){
   const content=fs.readFileSync(path.join(root,decodeURIComponent(record.preview)),'utf8'),r=new JSDOM(content,{runScripts:'outside-only'});doms.push(r);
@@ -40,6 +52,12 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
   assert.equal(r.window.getComputedStyle(rd.querySelector('article')).borderRadius,'12px');
   assert.equal(r.window.getComputedStyle(rd.querySelector('h1')).fontSize,'29px');
   assert(rd.querySelector('style').textContent.includes('--paper:#fff'));
+  if(['doc','docx','odt','rtf'].includes(record.type)&&record.status==='preview'){
+   const flow=rd.querySelector('.document-flow');assert(flow);assert(flow.textContent.includes('sample checks headings'));
+   assert(flow.textContent.includes('second page must be present'));assert(flow.querySelector('table'));assert(flow.querySelector('img'));
+   assert(!rd.querySelector('.print-layout').open);assert(rd.querySelector('.print-layout img'));
+  }
+  if(['xls','ods'].includes(record.type)){assert(rd.querySelector('.sheet table'));assert(!rd.querySelector('.print-layout').open);}
   if(record.type==='html')assert.equal(rd.querySelector('iframe').getAttribute('sandbox'),'');
  }
  const md=records.find(x=>x.path.endsWith('说明.md'));const rd=open(fs.readFileSync(path.join(root,decodeURIComponent(md.preview)),'utf8')),rdoc=rd.window.document;
@@ -49,5 +67,5 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
  rdoc.querySelector('.toc a').click();assert(rdoc.body.classList.contains('toc-open'));
  rdoc.dispatchEvent(new rd.window.KeyboardEvent('keydown',{key:'Escape'}));assert(!rdoc.body.classList.contains('toc-open'));
  assert(rdoc.body.textContent.includes('window.injected'));assert.equal(rd.window.injected,undefined);
- console.log(JSON.stringify({files:records.length,passed:['single-column tree and direct standalone links','icon-only accessible control','all collapsed / all expanded / partial / hidden child','state and scroll restore','storage unavailable','empty tree','every preview has inline reading layout','article TOC closed by default / open / Escape','Markdown script remains text','original HTML sandbox'],scope:'DOM simulation and computed CSS; not real-browser layout or playback'},null,2));
+ console.log(JSON.stringify({files:records.length,passed:['single-column tree and direct standalone links','icon-only accessible control','all collapsed / all expanded / partial / hidden child','state and scroll restore','storage unavailable','empty tree','every preview has inline reading layout','article TOC closed by default / open / Escape','Markdown script remains text','original HTML sandbox','folder entry and parent/root navigation','Word/ODT/RTF selectable text and table/image structure','XLS/ODS web tables'],scope:'DOM simulation and computed CSS; not real-browser layout or playback'},null,2));
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>doms.forEach(d=>d.window.close()));

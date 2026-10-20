@@ -32,7 +32,7 @@ npm ci --ignore-scripts --no-audit --no-fund
 
 ## 索引与报告独立
 
-`maintain-html-index` 只扫描已有文件并生成预览，默认入口为 `00 - 文件索引.html`，配套内容集中在 `.file-index/`。索引为居中单栏文件树；点击直接进入独立阅读页，文章目录默认关闭，不使用左目录右预览布局。标题旁的单个无边框图标在有任何展开目录时收起全部，完全收起时才展开全部。Word、PPT、PDF 等提供页面预览，Excel 提供工作表视图，其他类型见 [支持范围](maintain-html-index/references/file-previews.md)。Python 依赖见 `requirements.txt`；Office/PDF 版面转换需要 LibreOffice 和 Poppler。
+`maintain-html-index` 只扫描已有文件并生成预览，默认入口为 `00 - 文件索引.html`，配套内容集中在 `.file-index/`。索引为居中单栏文件树，文件夹名可进入子目录，箭头控制折叠；点击直接进入独立阅读页，文章目录默认关闭，不使用左目录右预览布局。标题旁的单个无边框图标在有任何展开目录时收起全部，完全收起时才展开全部。Word、ODT、RTF 等优先提供可选择文本的连续网页，原版式折叠补充；PPT、PDF 保留逐页预览，Excel/XLS/ODS 提供工作表视图，其他类型见 [支持范围](maintain-html-index/references/file-previews.md)。Python 依赖见 `requirements.txt`；Office/PDF 版面转换需要 LibreOffice 和 Poppler。
 
 `task-work-report` 按任务量和用户要求启用，只写“已完成”和“需要你审核、确认”。索引不会自动创建报告；报告已存在时才按普通文件生成预览。同一任务的后续修改更新原报告，整理为当前状态；独立任务或正式留档才新建。文章审核工具 `report-review-html` 保持独立用途。
 
