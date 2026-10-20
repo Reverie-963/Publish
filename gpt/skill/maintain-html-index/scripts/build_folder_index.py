@@ -75,14 +75,6 @@ def office_pdf(src,out):
   if not result.is_file():raise RuntimeError('Office 转换没有生成 PDF（文件可能损坏或不支持）')
   dest=out.parent/'document.pdf';shutil.copy2(result,dest);return dest
 
-def office_export(src,folder,format_spec):
- binary=shutil.which('soffice') or shutil.which('libreoffice')
- if not binary:raise RuntimeError('缺少 LibreOffice，无法制作网页正文')
- command([binary,'-env:UserInstallation='+(folder/'profile').as_uri(),'--headless','--convert-to',format_spec,'--outdir',folder,src],120)
- result=folder/(src.stem+'.'+format_spec.split(':')[0])
- if not result.is_file():raise RuntimeError('未生成可读取的网页转换结果')
- return result
-
 def workbook(src,out,max_cells):
  import openpyxl
  wb=openpyxl.load_workbook(src,data_only=False,read_only=False);cached=openpyxl.load_workbook(src,data_only=True,read_only=False)
@@ -129,20 +121,7 @@ def render(src,out,args,mapping):
   if r.returncode:raise RuntimeError('Markdown 渲染失败：'+r.stderr[-350:])
   data=json.loads(r.stdout);body=data['body'];notes=data['issues'];title=''
  elif ext in OFFICE:
-  pdf=office_pdf(src,out);snap,notes=pdf_preview(pdf,out,args.max_pages)
-  if ext in {'.doc','.docx','.odt','.rtf','.xls','.ods'}:
-   try:
-    with tempfile.TemporaryDirectory(prefix='index-web-') as temp:
-     if ext in {'.xls','.ods'}:
-      exported=office_export(src,Path(temp),'xlsx');body,extra=workbook(exported,out,args.max_cells);notes+=extra
-     else:
-      from office_web import writer_html
-      exported=office_export(src,Path(temp),'html:HTML (StarWriter)');body=writer_html(exported,src,out,mapping)
-    body+='<details class="print-layout"><summary>查看原版式</summary>'+snap+'</details>'
-    notes.append('当前为连续网页排版；分页及复杂布局请查看原版式。')
-   except Exception as e:
-    body=snap;notes.append('网页正文转换未完成，当前显示原版式：'+str(e))
-  else:body=snap
+  pdf=office_pdf(src,out);body,notes=pdf_preview(pdf,out,args.max_pages)
  elif ext=='.pdf':body,notes=pdf_preview(src,out,args.max_pages)
  elif ext in {'.xlsx','.xlsm'}:
   body,notes=workbook(src,out,args.max_cells)
@@ -213,7 +192,7 @@ def main():
    sources.append(f)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
  for directory in directories:mapping[str(root/directory)]=str(work/'folders'/hashlib.sha256(directory.encode()).hexdigest()[:16]/'index.html')
- version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/office_web.py','assets/reader.css','assets/preview.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
+ version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','assets/reader.css','assets/preview.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
  links_hash=hashlib.sha256(json.dumps(sorted([str(f.relative_to(root)) for f in sources]+directories)).encode()).hexdigest()
  records=[];reused=0
  for src in sources:

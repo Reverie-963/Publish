@@ -52,12 +52,9 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
   assert.equal(r.window.getComputedStyle(rd.querySelector('article')).borderRadius,'12px');
   assert.equal(r.window.getComputedStyle(rd.querySelector('h1')).fontSize,'29px');
   assert(rd.querySelector('style').textContent.includes('--paper:#fff'));
-  if(['doc','docx','odt','rtf'].includes(record.type)&&record.status==='preview'){
-   const flow=rd.querySelector('.document-flow');assert(flow);assert(flow.textContent.includes('sample checks headings'));
-   assert(flow.textContent.includes('second page must be present'));assert(flow.querySelector('table'));assert(flow.querySelector('img'));
-   assert(!rd.querySelector('.print-layout').open);assert(rd.querySelector('.print-layout img'));
+  if(['doc','docx','odt','rtf','xls','ods'].includes(record.type)&&record.status==='preview'){
+   assert(rd.querySelector('figure.page img'));assert(!rd.querySelector('.document-flow,.print-layout'));
   }
-  if(['xls','ods'].includes(record.type)){assert(rd.querySelector('.sheet table'));assert(!rd.querySelector('.print-layout').open);}
   if(record.type==='html')assert.equal(rd.querySelector('iframe').getAttribute('sandbox'),'');
  }
  const md=records.find(x=>x.path.endsWith('说明.md'));const rd=open(fs.readFileSync(path.join(root,decodeURIComponent(md.preview)),'utf8')),rdoc=rd.window.document;
@@ -67,5 +64,5 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
  rdoc.querySelector('.toc a').click();assert(rdoc.body.classList.contains('toc-open'));
  rdoc.dispatchEvent(new rd.window.KeyboardEvent('keydown',{key:'Escape'}));assert(!rdoc.body.classList.contains('toc-open'));
  assert(rdoc.body.textContent.includes('window.injected'));assert.equal(rd.window.injected,undefined);
- console.log(JSON.stringify({files:records.length,passed:['single-column tree and direct standalone links','icon-only accessible control','all collapsed / all expanded / partial / hidden child','state and scroll restore','storage unavailable','empty tree','every preview has inline reading layout','article TOC closed by default / open / Escape','Markdown script remains text','original HTML sandbox','folder entry and parent/root navigation','Word/ODT/RTF selectable text and table/image structure','XLS/ODS web tables'],scope:'DOM simulation and computed CSS; not real-browser layout or playback'},null,2));
+ console.log(JSON.stringify({files:records.length,passed:['single-column tree and direct standalone links','icon-only accessible control','all collapsed / all expanded / partial / hidden child','state and scroll restore','storage unavailable','empty tree','every preview has inline reading layout','article TOC closed by default / open / Escape','Markdown script remains text','original HTML sandbox','folder entry and parent/root navigation','Office page previews restored'],scope:'DOM simulation and computed CSS; not real-browser layout or playback'},null,2));
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>doms.forEach(d=>d.window.close()));

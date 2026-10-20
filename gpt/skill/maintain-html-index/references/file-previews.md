@@ -19,11 +19,11 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/maintain-html-index/scripts/build_fo
 | 类型 | HTML 预览方式 | 边界 |
 |---|---|---|
 | MD | 可选择文本、表格、图片、目录与离线数学 | 不执行原文 HTML 脚本；缺失链接明确记录 |
-| DOC/DOCX、RTF、ODT | 连续 HTML 正文，保留可选择文本、标题、表格和图片；原版式折叠补充 | LibreOffice 网页导出后清理为响应式正文，去除固定分页；复杂浮动对象、页眉页脚等以原版式为准。失败时明确降级，不冒充网页正文 |
+| DOC/DOCX、RTF、ODT | 转换为 PDF 后逐页显示 | 静态版面；转换后的字体与复杂布局可能不同于原应用 |
 | PPT/PPTX、ODP | 逐页幻灯片图像 | 不播放动画、交互及嵌入音视频 |
 | PDF | 每页图像，保留页面顺序 | 不等同于 OCR；原 PDF 可另开 |
 | XLSX/XLSM | 完整工作表表格、工作表导航、合并单元格及基本样式；图表/图片另附版面视图 | 不执行宏、不重算公式；无缓存时显示公式；数字展示以读取值为准，不承诺复现全部数字格式 |
-| XLS、ODS | 转换临时 XLSX 后提供工作表 HTML；打印版面折叠补充 | 不改原件；继承 XLSX 的公式、格式限制，打印版面受原区域影响 |
+| XLS、ODS | 打印版面逐页显示 | 受原工作簿打印区域影响 |
 | CSV/TSV | HTML 表格 | 默认 UTF-8；编码不兼容时报错，不能乱码冒充成功 |
 | PNG/JPEG/GIF/WebP/SVG | 图片预览 | GIF 保留源动画；SVG 作为图片加载 |
 | BMP/TIFF | 转换成 PNG；多页 TIFF 分页 | 转换不覆盖原图 |
@@ -43,7 +43,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/maintain-html-index/scripts/build_fo
 - 对每种实际用到的类型至少检查一个样例，重点包括多页、图片、表格、公式、工作表和特殊路径。
 - 测试无报告目录不产生报告；已有报告与其他 Markdown 一样被识别。
 - 检查源 SHA 未变、重复构建结果稳定、增量能发现变化、不覆盖用户 HTML、损坏或未知类型仍可找到。
-- 检查 Word/ODT 等正文中真实存在可选择文本、表格和嵌入图片，原版式默认折叠；幻灯片/PDF 保留完整页面。检查子目录进入、上一级、总索引及空目录。
+- 检查子目录进入、上一级、总索引和空目录，目录名导航与箭头折叠相互独立。
 - 检查本地链接、资源、片段、嵌套目录、样式/字体；交互逻辑测试与真实浏览器视觉/播放测试分别说明。
 
 ## 可重复样例
@@ -51,5 +51,3 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/maintain-html-index/scripts/build_fo
 `tests/generate_samples.py EMPTY_DIR --legacy` 生成本次测试使用的 33 个合成样例（32 种扩展名，含未知类型和损坏文件）。拒绝写入非空目录。除预览依赖外，样例制作还需要 python-docx、python-pptx、reportlab 和 ffmpeg；`--legacy` 需要 LibreOffice。全部内容是测试数据，不涉及用户课程资料。
 
 用生成器构建样例索引后，可用 `tests/check_ui.cjs ROOT` 做 DOM 交互测试；需要在独立测试环境安装 jsdom 并通过 NODE_PATH 使其可见。这不会启动真实浏览器，不能用来证明视觉布局或音视频播放。
-
-`python3 tests/check_office_web.py` 检查网页正文、表格和图片保留，以及主动内容清理和转换异常；不调用 Office、不代表复杂文档转换或真实浏览器视觉已验证。
