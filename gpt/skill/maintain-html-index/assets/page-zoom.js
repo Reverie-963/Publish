@@ -1,7 +1,7 @@
 // One scale for the whole document, shared by pages using this asset directory.
 (() => {
   if (document.querySelector('.page-zoom')) return;
-  const host = document.querySelector('.index-actions, .reader-heading');
+  const host = document.querySelector('.index-actions') || document.querySelector('.reader-actions') || document.querySelector('.reader-heading');
   if (!host) return;
   const currentScript = document.currentScript;
   const script = currentScript?.src || document.querySelector('script[src$="page-zoom.js"]')?.src;
@@ -31,6 +31,7 @@
     if (anchor?.closest('.page-zoom') || anchor === document.body || anchor === document.documentElement) anchor = null;
     const before = anchor?.getBoundingClientRect(), oldScroll = window.scrollY, ratio = next / scale;
     document.body.style.zoom = String(next); scale = next; display();
+    document.dispatchEvent(new CustomEvent('page-scalechange'));
     if (remember) {
       // Restore the point under the pointer after layout reflows at the new scale.
       const after = anchor?.getBoundingClientRect();
