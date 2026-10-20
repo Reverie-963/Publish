@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video BGM Finder"
+  short_description: "Identify video BGM and append Markdown logs"
+  default_prompt: "Use $video-bgm-finder to identify the BGM in this video URL and append the Markdown checklist."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML 索引维护"
+  short_description: "统一维护本地资料折叠索引、相对链接、展开状态与配套阅读入口"
+  default_prompt: "使用 $maintain-html-index 更新指定资料目录的 HTML 索引，保留现有顺序和文件，检查链接与展开状态，并交付索引入口。"
