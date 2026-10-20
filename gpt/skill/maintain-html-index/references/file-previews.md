@@ -29,7 +29,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/maintain-html-index/scripts/build_fo
 | BMP/TIFF | 转换成 PNG；多页 TIFF 分页 | 转换不覆盖原图 |
 | MP3/WAV/OGG/M4A/FLAC | 浏览器音频播放器 | 实际编码须浏览器支持 |
 | MP4/WebM/MOV/M4V/AVI | 浏览器视频播放器 | 容器不保证编码兼容；需实际播放检查 |
-| TXT、JSON、YAML、代码等 | 完整可选择文本；已知语言由 highlight.js 在生成阶段配色 | 不执行代码，未知语言保持纯文本；不使用在线依赖 |
+| TXT、JSON、YAML、代码（含 MATLAB `.m`）等 | 完整可选择文本；已知语言由 highlight.js 在生成阶段配色 | 不执行代码，未知语言保持纯文本；不使用在线依赖 |
 | HTML | 受限 iframe 显示原页面 | 禁用原页面脚本和表单，复杂交互不保证可用 |
 | ZIP | 压缩包文件清单 | 不解压、不执行内部文件 |
 | 未知或损坏类型 | 说明限制并保留原件入口 | 不能标记为内容预览成功 |
@@ -48,7 +48,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/maintain-html-index/scripts/build_fo
 
 ## 可重复样例
 
-`tests/generate_samples.py EMPTY_DIR --legacy` 生成本次测试使用的 33 个合成样例（32 种扩展名，含未知类型和损坏文件）。拒绝写入非空目录。除预览依赖外，样例制作还需要 python-docx、python-pptx、reportlab 和 ffmpeg；`--legacy` 需要 LibreOffice。全部内容是测试数据，不涉及用户课程资料。
+`tests/generate_samples.py EMPTY_DIR --legacy` 生成本次测试使用的 34 个合成样例（33 种扩展名，含未知类型和损坏文件）。拒绝写入非空目录。除预览依赖外，样例制作还需要 python-docx、python-pptx、reportlab 和 ffmpeg；`--legacy` 需要 LibreOffice。全部内容是测试数据，不涉及用户课程资料。
 
 用生成器构建样例索引后，可用 `tests/check_ui.cjs ROOT` 做 DOM 交互测试；需要在独立测试环境安装 jsdom 并通过 NODE_PATH 使其可见。这不会启动真实浏览器，不能用来证明视觉布局或音视频播放。
 

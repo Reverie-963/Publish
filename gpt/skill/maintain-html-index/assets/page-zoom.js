@@ -13,14 +13,14 @@
   const steps = [.5, .67, .8, .9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
   let scale = 1;
   const ui = document.createElement('div'); ui.className = 'page-zoom';
-  ui.innerHTML = '<button type="button" class="page-scale" aria-label="页面缩放：100%" aria-expanded="false" aria-controls="page-scale-panel" title="页面缩放">100%</button><div id="page-scale-panel" class="page-zoom-panel" role="group" aria-label="页面缩放" hidden><button type="button" data-scale-action="out" aria-label="缩小页面">−</button><button type="button" data-scale-action="reset" aria-label="恢复页面原始大小">100%</button><button type="button" data-scale-action="in" aria-label="放大页面">+</button></div>';
+  ui.innerHTML = '<button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" class="page-scale-menu" aria-label="调整页面缩放" aria-expanded="false" aria-controls="page-scale-panel" title="调整页面缩放"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></button><div id="page-scale-panel" class="page-zoom-panel" role="group" aria-label="页面缩放" hidden><button type="button" data-scale-action="out" aria-label="缩小页面">−</button><button type="button" data-scale-action="reset" aria-label="恢复页面原始大小">100%</button><button type="button" data-scale-action="in" aria-label="放大页面">+</button></div>';
   // On index pages, keep the existing collapse icon at the far right.
   host.prepend(ui);
-  const trigger = ui.querySelector('.page-scale'), panel = ui.querySelector('.page-zoom-panel');
+  const reset = ui.querySelector('.page-scale'), trigger = ui.querySelector('.page-scale-menu'), panel = ui.querySelector('.page-zoom-panel');
   const smaller = ui.querySelector('[data-scale-action="out"]'), larger = ui.querySelector('[data-scale-action="in"]');
   function display() {
     const percent = Math.round(scale * 100) + '%';
-    trigger.textContent = percent; trigger.setAttribute('aria-label', '页面缩放：' + percent);
+    reset.textContent = percent; reset.setAttribute('aria-label', '当前缩放 ' + percent + '，恢复原始大小');
     smaller.disabled = scale <= .5; larger.disabled = scale >= 3;
   }
   function setScale(value, point, remember = true) {
@@ -49,6 +49,7 @@
     panel.hidden = !show; trigger.setAttribute('aria-expanded', String(show));
     if (focus) trigger.focus({preventScroll:true});
   }
+  reset.addEventListener('click', () => { setScale(1); open(false); });
   trigger.addEventListener('click', () => open(panel.hidden));
   ui.addEventListener('click', event => {
     const action = event.target.closest('[data-scale-action]')?.dataset.scaleAction;

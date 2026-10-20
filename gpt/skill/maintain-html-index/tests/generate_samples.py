@@ -35,7 +35,7 @@ c=canvas.Canvas(str(r/'01 - 文档/原版.pdf'))
 for i in range(2):c.setFont('Helvetica',24);c.drawString(70,760,'PDF preview - page '+str(i+1));c.drawImage(str(r/'03 - 图片/图示 #1.png'),70,360,width=450,height=253);c.showPage()
 c.save()
 (r/'01 - 文档/说明.md').write_text('# Markdown 预览\n\n这里是完整正文，包含公式 $x^2+y^2=1$。\n\n## 同名标题\n\n[查看 Word](<Word 示例.docx>)\n\n![图示](<../03 - 图片/图示 %231.png>)\n\n## 同名标题\n\n|项目|数值|\n|---|---|\n|甲|12|\n\n<script>window.injected=true</script>\n')
-texts={'说明.txt':'纯文本预览。\n第二行。','配置.json':json.dumps({'name':'示例','value':42},ensure_ascii=False,indent=2),'配置.yaml':'name: 示例\nvalue: 42\n','示例.py':'def add(a, b):\n    return a + b\n','示例.c':'int add(int a, int b) { return a + b; }\n'}
+texts={'示例.m':'% MATLAB 示例：数组、函数、字符串与转置\nfunction y = scale_signal(x, gain)\n    arguments\n        x double\n        gain (1,1) double = 2\n    end\n    label = "scaled signal";\n    samples = [1, 2, 3];\n    y = gain .* x;\n    column = samples\';\n    disp(label);\nend\n','说明.txt':'纯文本预览。\n第二行。','配置.json':json.dumps({'name':'示例','value':42},ensure_ascii=False,indent=2),'配置.yaml':'name: 示例\nvalue: 42\n','示例.py':'def add(a, b):\n    return a + b\n','示例.c':'int add(int a, int b) { return a + b; }\n'}
 for n,v in texts.items():(r/'05 - 文本与代码/嵌套目录 #1'/n).write_text(v)
 (r/'01 - 文档/已有网页.html').write_text('<!doctype html><meta charset="utf-8"><h1>已有 HTML 页面</h1><p>保留页面内容，在受限 iframe 中预览。</p><script>window.top.location="https://example.invalid"</script>')
 with zipfile.ZipFile(r/'06 - 其他/压缩包.zip','w') as z:z.writestr('说明.txt','Archive preview');z.writestr('sub/data.csv','a,b\n1,2')
