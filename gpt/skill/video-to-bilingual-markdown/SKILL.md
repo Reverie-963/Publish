@@ -11,13 +11,6 @@ By default, write `<video-stem>.original.md` and `<video-stem>.zh.md` beside the
 
 Never overwrite the video. Process batch inputs one video at a time. This remains a separate skill from `translate-docs-to-markdown`: this skill handles video inspection, transcription, timestamps, and screenshot curation; the translation skill supplies translation quality rules.
 
-## Layout And Shared Navigation
-
-Use [maintain-html-index](../maintain-html-index/SKILL.md) for shared HTML readers and navigation. Keep both manuscripts beside the video with its full stem and activity number; share relative screenshots under `assets/<video-stem>/screens/`. Do not create `_视频讲稿/`, `_翻译/`, or `文稿索引/` wrappers. Keep working JSON and contact sheets outside the study folder.
-
-After content review, pass the root, affected manuscripts, source video, verified online/subtitle links, existing order to the index skill. Explicitly request both language HTML readers (`--include-originals`) for this bilingual-video workflow. Retain source/counterpart/index links in the local Markdown. Use the shared skill’s migration procedure only when movement is in scope; preserve unrelated materials and user edits.
-
-
 ## Workflow
 
 1. Inspect the video before processing.
@@ -59,8 +52,6 @@ The helper identifies major page transitions and captures the last stable frame 
 
 Read [references/screenshot-selection.md](references/screenshot-selection.md) and inspect the contact sheet plus uncertain full-resolution frames. Automatic selection is only a candidate pass.
 
-- Retain every important complete page: title/topic pages, the final state of each explanatory slide, and persistent demonstration states that reveal a meaningful command, result, diagram, or error.
-- Remove transitions, partial builds superseded by a complete state, cursor-only changes, near-duplicates, blank screens, and decorative outros.
 - Add a manual frame when an important page or demonstration state was missed. Use `ffmpeg -ss <seconds> -i <video> -frames:v 1` and record it in the manifest.
 - Keep screenshots as the complete video viewport. Do not crop away page context unless the user explicitly asks for crops.
 - Use only frames from the source video; never regenerate or redraw source visuals.
@@ -84,13 +75,9 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/video-to-bilingual-markdown/scripts/
 
 6. Translate using the user's translation Markdown skill.
 
-After the original Markdown passes review, load `$translate-docs-to-markdown` when it is available and apply its translation and output rules. The input is already Markdown, so skip that skill's binary document extraction step. Keep the video as the naming source: translate `video.original.md` into `video.zh.md` beside `video.mp4`, not `video.original.zh.md`. Reuse `assets/video/screens/` and the same navigation. Applying translation rules does not merge the two skills or create another index.
+After the original Markdown passes review, apply the shared [translation and formula rules](../translate-docs-to-markdown/references/output-rules.md). Skip document extraction and ordinary PDF cropping: this workflow retains complete video screenshots. Keep the video as the naming source: `video.original.md` becomes `video.zh.md`, not `video.original.zh.md`.
 
-- Translate block by block into Simplified Chinese and keep the `.zh.md` structurally parallel to `.original.md`.
-- Reuse the exact same screenshot links and timestamp ranges.
-- Preserve code, commands, formulas, URLs, and machine-readable examples unchanged.
-- For specialized terms, prefer `中文（English）` at first mention when ambiguity is possible.
-- Do not summarize or silently drop transcript content.
+Keep the two manuscripts structurally parallel, with identical screenshot links and timestamp ranges. Translate all transcript content without summarizing it; reuse the same assets. This content-only handoff does not invoke a second renderer or index update.
 
 7. Update navigation and validate both deliverables.
 
@@ -102,19 +89,12 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/video-to-bilingual-markdown/scripts/
   --min-screens 1
 ```
 
-Before delivery, call `maintain-html-index` with the video and both reviewed manuscripts, prepared coverage/validation notes, and existing subtitles/online links. Request both language HTML readers and their navigation entries. Add source/counterpart/return links to both manuscripts and validate these local links as well as screenshots. The screenshot validator does not check navigation reachability or prove that every source interval is covered; verify those separately.
+Before delivery, call [maintain-html-index](../maintain-html-index/SKILL.md) once with the video, both reviewed manuscripts, source/counterpart links, verified online/subtitle links and existing order. Enable `--include-originals` so both languages appear. That skill owns HTML locations and navigation: new previews stay in `.file-index/`, with legacy sibling HTML maintained only when required for existing links. Do not create wrapper folders or a separate translation index.
 
-Treat a missing image, broken relative path, out-of-order timestamp, image-set mismatch, missing navigation entry, or unaccounted source interval as a delivery blocker. Re-read both Markdown files and visually inspect the final contact sheet before finishing. Deliver one shared navigation link plus a short account of completion and actual limitations.
+The screenshot validator checks local assets, image order/count and chronological section starts; it does not prove matching timestamp ranges, complete coverage or navigation reachability. Verify those separately against the source. Missing assets, mismatched sections/timestamps or unaccounted intervals fail delivery. Link the actual shared navigation and disclose actual limitations.
 
-## Quality Bar
-
-- The Markdown is a readable textual edition of the whole video, not raw ASR output and not a summary.
-- Every important visual page/state appears once, in complete form, near the corresponding words.
-- The original and Chinese files have matching sections, timestamps, and screenshot links.
-- Uncertain transcription is disclosed instead of guessed.
-- Temporary audio and redundant frame dumps are removed; auditable JSON and contact sheets can remain in the task working directory outside the study folder. Only final referenced screenshots belong in `assets/<video-stem>/screens/`.
-- Each completed task updates the shared navigation without creating duplicate video/translation indexes; the video and document translation skills remain separate entrypoints.
+After review, remove temporary audio and redundant frame dumps. Keep auditable JSON/contact sheets in the task working directory; only referenced screenshots belong in the study folder.
 
 ## 任务报告
 
-不因翻译、归档或生成索引而强制创建报告。任务量较大、存在多项成果或有用户待确认事项时，另行使用 [task-work-report](../task-work-report/SKILL.md)。报告只写已完成和待审核确认，详细来源记录与课程正文单独保留。
+需要工作汇报时使用 [task-work-report](../task-work-report/SKILL.md)，启用条件、内容和续写规则以该技能为准；视频处理和索引本身不强制创建报告。

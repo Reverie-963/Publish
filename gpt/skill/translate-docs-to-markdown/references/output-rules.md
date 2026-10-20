@@ -1,10 +1,5 @@
 # Output Rules
 
-## Packaging And Navigation
-
-- Follow [同目录文稿与统一导航](../../maintain-html-index/references/layout-and-navigation.md): the translated Markdown and derived HTML reading version beside the original by default, shared `assets/<source-stem>/`, the actual shared HTML navigation entry without automatically requiring a task report. Video manuscripts use this same layout, while their transcription and screenshot workflow remains in the separate video skill.
-- Resolve image links from the final Markdown path; move/copy the source directory together with its `assets/` to retain portability. Update existing navigation at task completion and validate source/counterpart/return links.
-
 ## Markdown Structure
 
 - Preserve heading depth if it is inferable from the source.
@@ -12,7 +7,7 @@
 - Preserve lists as lists.
 - Preserve tables as Markdown tables when the layout remains readable.
 - If a complex table becomes unreadable in Markdown, use a simplified table plus a short note.
-- Deliver the complete translated Markdown (`.zh.md` for Chinese) and its derived `.zh.html` reading page by default. The HTML is not a second translation: generate it from Markdown and keep it synchronized. Keep section order, formulas, visuals, tables, lists, captions, and numbering aligned with the source. Create a `.original.md` companion only on explicit request; keep any extraction draft in temporary working storage.
+- Keep section order, formulas, visuals, captions, references and numbering aligned with the source. Naming and delivery are defined by the calling skill; this reference does not create additional manuscripts or HTML copies.
 
 ## Formula Handling
 
@@ -29,7 +24,7 @@
 
 ## Image And Crop Handling
 
-- Prefer local cropped images for figures, tables, and screenshots.
+- For ordinary documents, prefer local cropped images for figures, tables, and screenshots. Slide-deck and video workflows intentionally retain complete slides/video viewports; their own visual rules take precedence over this crop default.
 - Avoid full-page screenshots in the final Markdown when a meaningful local crop can be produced.
 - Place cropped images next to their translated caption or surrounding paragraph.
 - Use stable relative links to assets stored beside the Markdown, under `assets/<source-stem>/crops/` for document crops.
@@ -40,24 +35,14 @@
 
 ## Translation Quality
 
-- If a source-language companion is explicitly requested, preserve its original wording without translation, paraphrase, or summary. Do not create such a companion by default.
+- When the calling workflow requires a source-language companion, preserve its original wording without translation, paraphrase, or summary.
 - Translate meaning, not surface word order.
 - Keep terminology consistent across headings, prose, figure captions, and table headers.
 - Retain important English terms at first mention when the Chinese term could be ambiguous.
 - Avoid machine-literal phrasing. Rewrite into fluent target-language prose while preserving technical meaning.
 
-## Final Checks
+## Validation and HTML
 
-- Check that every source section appears in the Markdown output.
-- Check translated coverage against the source document, without requiring a delivered English Markdown baseline.
-- Only for an explicitly requested source-language companion, check original wording, matching structure, image links, and formula positions.
-- Check that formulas are not translated as natural language.
-- Preview representative inline, display, and table math in the requested readers when available. Check for exposed delimiters, malformed subscripts/superscripts, and math errors. A LaTeX parser passing does not prove either reader rendered the Markdown; state which reader was actually checked.
-- Check that table separators render correctly.
-- Check that numbering, references, and units remain intact.
-- Check that final Markdown image links point to local crops rather than page-level screenshots unless a full-page image is explicitly justified.
-- Run `scripts/validate_markdown_assets.py` with the inventoried minimum image count on every delivered Markdown file. Missing files, broken relative links, or a lower-than-expected image count must fail the final check.
+The calling skill owns its coverage and asset checks. For formulas, inspect representative inline, display and table expressions in the intended reader: exposed delimiters, incorrect exponent/subscript scope and parser errors require correction. Parsing alone does not establish rendered compatibility.
 
-## HTML Reading Versions
-
-Follow [HTML reading pages](html-readers.md). Preserve complete text, images, tables, formula semantics and source order; add a horizontally collapsible heading TOC drawer (initially closed) and one “返回总索引” link inside the article. The closed sidebar leaves the article centered; opening it reserves left-side space and pushes the article right without dimming or blocking the page. No top navigation bar or Markdown-file link. Reports appear as ordinary file leaves in index trees. Default material links are Chinese HTML, the original source file labeled 原文稿, and any verified online entry; hide English Markdown/HTML navigation unless explicitly requested. Existing task reports are ordinary files; this workflow does not require creating one. Do not replace local Markdown or split pages into separate content copies.
+All HTML layout, preview storage and navigation rules are maintained in [maintain-html-index](../../maintain-html-index/SKILL.md). Do not copy them into translation guidance; the local compatibility references only redirect older callers.
