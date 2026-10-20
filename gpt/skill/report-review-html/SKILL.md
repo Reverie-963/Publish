@@ -5,6 +5,8 @@ description: Create bilingual HTML review editions of reports and other prose wh
 
 # HTML Review Editions
 
+For assistant task completion summaries (what was done and what needs user confirmation), use `task-work-report` instead. This skill remains for revising authored prose.
+
 Create the review in the user's writing folder, separate from submission materials. Follow the established navigation and purple accent palette. Ground claims in the actual sources and saved results.
 
 ## Paragraph versions

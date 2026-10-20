@@ -1,4 +1,4 @@
 interface:
   display_name: "Translate Docs to Markdown"
-  short_description: "中文 Markdown 与带目录 HTML 阅读版，维护简洁索引及 HTML/MD 报告"
-  default_prompt: "Use $maintain-html-index for shared navigation and HTML readers. Use $translate-docs-to-markdown to create Chinese Markdown and its synchronized HTML reader with a table of contents, preserve formulas and visuals, and update the minimal HTML index plus HTML report with its local Markdown source; do not create an English Markdown companion unless explicitly requested."
+  short_description: "忠实中文 Markdown 翻译与 HTML 阅读版，按需接入共享索引"
+  default_prompt: "使用 $translate-docs-to-markdown 完成本技能任务；需要导航时调用 $maintain-html-index，工作量需要报告时另行调用 $task-work-report。"

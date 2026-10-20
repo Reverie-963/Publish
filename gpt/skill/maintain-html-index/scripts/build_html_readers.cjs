@@ -6,7 +6,7 @@ const MarkdownIt=require('markdown-it'), texmath=require('markdown-it-texmath'),
 const args=process.argv.slice(2);const opt={files:[]};
 for(let i=0;i<args.length;i++){const a=args[i];if(a==='--root')opt.root=path.resolve(args[++i]);else if(a==='--file')opt.files.push(args[++i]);else if(a==='--manifest')opt.manifest=path.resolve(args[++i]);else if(a==='--update-indexes')opt.indexes=true;else if(a==='--include-originals')opt.originals=true;else throw Error('Unknown argument: '+a);}
 if(!opt.root)throw Error('Usage: node build_html_readers.cjs --root DIR [--file relative.md ...] [--update-indexes] [--manifest /temporary/report.json]');
-const root=opt.root, marker='<!-- codex-md-reader v1 -->';
+const root=opt.root, entryName=fs.existsSync(path.join(opt.root,'00 - 文件索引.html'))?'00 - 文件索引.html':'index.html', marker='<!-- codex-md-reader v1 -->';
 const skip=n=>n.startsWith('.')||['node_modules','assets','source_assets','work','99 - 归档'].includes(n)||n.endsWith('_assets');
 function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{const p=path.join(dir,e.name);return e.isDirectory()?(skip(e.name)?[]:walk(p)):(e.isFile()?[p]:[]);});}
 const all=walk(root);const files=opt.files.length?opt.files.map(p=>path.resolve(root,p)):all.filter(p=>p.endsWith('.md')&&!/(^|\/)(README|AGENTS)\.md$/.test(p)&&!p.split(path.sep).includes('文稿索引')&&(opt.originals||!p.endsWith('.original.md')||fs.existsSync(p.replace(/\.md$/,'.html'))));
@@ -82,7 +82,7 @@ for(const file of files){activeFile=file;mathCount=0;const out=mapping.get(file)
   const rest=inner.replace(/<a href="[^"]+">[^<]*<\/a>/g,'').replace(/[\s·|｜]/g,'');
   return !rest&&navLinks.some(m=>/^(?:返回.*(?:索引|目录)|总索引|板块索引)$/.test(m[2]))?'':full;
  });
- const returnLink=fs.existsSync(path.join(root,'index.html'))?'<a class="return-index" href="'+relative(out,path.join(root,'index.html'))+'">返回总索引</a>':'';
+ const returnLink=fs.existsSync(path.join(root,entryName))?'<a class="return-index" href="'+relative(out,path.join(root,entryName))+'">返回总索引</a>':'';
  const page=`<!doctype html>\n${marker}\n<html lang="${file.endsWith('.original.md')?'en':'zh-CN'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="md-source-sha256" content="${before.get(file)}"><title>${esc(data.title)}</title><link rel="stylesheet" href="${relative(out,path.join(asset,'reader.css'))}"><link rel="stylesheet" href="${relative(out,path.join(asset,'katex.min.css'))}"></head><body id="reader-top"><button class="toc-toggle" type="button" aria-controls="reader-toc" aria-expanded="false" aria-label="展开目录">目录 →</button><aside id="reader-toc" class="toc-panel" aria-label="目录" inert><div class="toc-title">目录</div><nav aria-label="文稿目录">${toc(data.headings)}</nav></aside><div class="layout"><article>${returnLink}${body}<a class="back-top" href="#reader-top">返回顶部 ↑</a></article></div><script src="${relative(out,path.join(asset,'reader.js'))}" defer></script></body></html>`;
  fs.writeFileSync(out,page);stat.documents.push({source:path.relative(root,file),html:path.relative(root,out),sha256:before.get(file),headings:data.headings.length,images:(body.match(/<img /g)||[]).length,math:mathCount});
 }
@@ -93,9 +93,6 @@ if(opt.indexes)for(const file of all.filter(f=>path.basename(f)==='index.html'))
  updated=updated.replace(/href="([^"]+)"/g,(full,u)=>{const o=resolveLink(file,u.replace(/&amp;/g,'&'));if(!o.external&&linkMapping.has(o.target))return 'href="'+esc(relative(file,linkMapping.get(o.target))+o.query+o.fragment)+'"';return full;});
  updated=updated.replace(/(<a\b[^>]*href="[^"]+\.(?:pdf|docx?|pptx?)(?:[?#][^"]*)?"[^>]*>)(?:原件|Word 模板|PDF 原件)(<\/a>)/gi,'$1原文稿$2');
  updated=updated.replace(/(<li><a\b[^>]*>原文稿<\/a><\/li>)(<li><a\b[^>]*>中文稿<\/a><\/li>)/g,'$2$1');
- let reportLink='';
- updated=updated.replace(/<header\b[^>]*>[\s\S]*?<\/header>/g,header=>header.replace(/<a\b[^>]*href="([^"]+)"[^>]*>报告<\/a>/g,(a,u)=>{reportLink=u;return '';}));
- if(reportLink&&!updated.includes('href="'+reportLink+'"'))updated=updated.replace(/(<ul\b[^>]*class="tree"[^>]*>)/,'$1<li><a class="leaf" href="'+reportLink+'">报告.html</a></li>');
  if(/class="tree"/.test(updated)){
   updated=updated.replace(/<div class="tree-controls"[^>]*>[\s\S]*?<\/div>/g,'');
   updated=updated.replace(/\.tree-controls[^{}]*\{[^}]*\}/g,'');

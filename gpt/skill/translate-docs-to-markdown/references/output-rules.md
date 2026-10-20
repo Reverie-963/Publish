@@ -2,7 +2,7 @@
 
 ## Packaging And Navigation
 
-- Follow [同目录文稿与统一导航](../../maintain-html-index/references/layout-and-navigation.md): the translated Markdown and derived HTML reading version beside the original by default, shared `assets/<source-stem>/`, a minimal `index.html` navigation tree with explanatory information maintained in `报告.md` and rendered as `报告.html`. Video manuscripts use this same layout, while their transcription and screenshot workflow remains in the separate video skill.
+- Follow [同目录文稿与统一导航](../../maintain-html-index/references/layout-and-navigation.md): the translated Markdown and derived HTML reading version beside the original by default, shared `assets/<source-stem>/`, the actual shared HTML navigation entry without automatically requiring a task report. Video manuscripts use this same layout, while their transcription and screenshot workflow remains in the separate video skill.
 - Resolve image links from the final Markdown path; move/copy the source directory together with its `assets/` to retain portability. Update existing navigation at task completion and validate source/counterpart/return links.
 
 ## Markdown Structure
@@ -60,4 +60,4 @@
 
 ## HTML Reading Versions
 
-Follow [HTML reading pages](html-readers.md). Preserve complete text, images, tables, formula semantics and source order; add a horizontally collapsible heading TOC drawer (initially closed) and one “返回总索引” link inside the article. The closed sidebar leaves the article centered; opening it reserves left-side space and pushes the article right without dimming or blocking the page. No top navigation bar or Markdown-file link. Reports appear as ordinary file leaves in index trees. Default material links are Chinese HTML, the original source file labeled 原文稿, and any verified online entry; hide English Markdown/HTML navigation unless explicitly requested. The report uses the same renderer with `报告.md` as its editable source. Do not replace local Markdown or split pages into separate content copies.
+Follow [HTML reading pages](html-readers.md). Preserve complete text, images, tables, formula semantics and source order; add a horizontally collapsible heading TOC drawer (initially closed) and one “返回总索引” link inside the article. The closed sidebar leaves the article centered; opening it reserves left-side space and pushes the article right without dimming or blocking the page. No top navigation bar or Markdown-file link. Reports appear as ordinary file leaves in index trees. Default material links are Chinese HTML, the original source file labeled 原文稿, and any verified online entry; hide English Markdown/HTML navigation unless explicitly requested. Existing task reports are ordinary files; this workflow does not require creating one. Do not replace local Markdown or split pages into separate content copies.

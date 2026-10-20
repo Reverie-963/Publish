@@ -1,6 +1,6 @@
 ---
 name: translate-docs-to-markdown
-description: Translate local Word, PDF, slide decks, images, and long screenshots into faithful Chinese Markdown with preserved formulas, structure, and visuals. Deliver Chinese Markdown plus a synchronized HTML reading version with a table of contents, retain source files, and maintain a minimal HTML index and HTML report with a local Markdown copy. Use maintain-html-index for navigation maintenance. Source-language Markdown is optional only when explicitly requested. The agent translates directly, without translation MCPs.
+description: Translate local Word, PDF, slide decks, images, and long screenshots into faithful Chinese Markdown with preserved formulas, structure, and visuals. Deliver Chinese Markdown plus a synchronized HTML reading version with a table of contents, retain source files, and use the shared HTML index when navigation is needed. Use maintain-html-index for navigation maintenance. Source-language Markdown is optional only when explicitly requested. The agent translates directly, without translation MCPs.
 ---
 
 # Translate Docs To Markdown
@@ -26,9 +26,8 @@ Use [maintain-html-index](../maintain-html-index/SKILL.md) for index creation, m
 
 - Keep the source in place. Write the complete `<source-stem>.zh.md` beside it (or in the user’s explicit output directory), preserving its full stem and activity number; group images under `assets/<source-stem>/`.
 - Do not create new `_翻译/` or `文稿索引/` wrappers. Do not migrate unrelated material. Follow the shared skill’s safe migration rules only when migration is within scope.
-- After translating or revising, pass the root directory, affected manuscripts, source mapping, verified online links, source order, and prepared report updates to the shared skill. It generates affected HTML readers and reconciles existing navigation; do not duplicate its templates or interaction rules here.
+- After translating or revising, pass the root directory, affected manuscripts, source mapping, verified online links, source order to the shared skill. It generates affected HTML readers and reconciles existing navigation; do not duplicate its templates or interaction rules here.
 - Keep source-language companions only when already present or explicitly requested. Video transcription and screenshot selection remain in `video-to-bilingual-markdown`.
-- Report content and validation notes remain governed by the existing workflow; this extraction does not redesign reports.
 
 ## Workflow
 
@@ -108,11 +107,11 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/translate-docs-to-markdown/scripts/r
 
 - Default naming: `source.zh.md`. Use `source.<lang>.md` for an explicitly requested alternative target language.
 - Write `source.original.md` only when the user explicitly requests a source-language reconstruction or bilingual Markdown delivery.
-- Keep the manuscript filename aligned with the full source stem, including its course number. Link the source and `index.html` near the top, outside the source content. Add a counterpart link only if the user explicitly requests it and that manuscript actually exists.
+- Keep the manuscript filename aligned with the full source stem, including its course number. Link the source and `00 - 文件索引.html`（或既有入口） near the top, outside the source content. Add a counterpart link only if the user explicitly requests it and that manuscript actually exists.
 - Keep shared assets in `assets/<source-stem>/`; use `crops/` for local PDF crops and `slides/` for slide renders. Reference them relative to the final Markdown directory.
 - If a relative asset path contains spaces or parentheses, wrap the Markdown destination in angle brackets, for example `![caption](<assets/paper(1)/crops/fig-01.png>)`, so Typora and common Markdown parsers do not truncate the path.
 - Never overwrite the source file.
-- Load [maintain-html-index](../maintain-html-index/SKILL.md) to generate the affected HTML reader, render the prepared report updates, and reconcile index links. Rebuild HTML whenever its Markdown changes; retain the local Markdown as the source of truth.
+- Load [maintain-html-index](../maintain-html-index/SKILL.md) when navigation is needed, to generate affected HTML previews and reconcile file links.
 - Reuse the same image assets if an optional source-language companion is requested; do not duplicate them.
 
 8. Perform a quality pass before finishing.
@@ -122,7 +121,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/translate-docs-to-markdown/scripts/r
 - Confirm that no new English/source-language Markdown deliverable was created by default.
 - Fix broken tables, malformed list indentation, duplicated lines, and obvious extraction artifacts.
 - Check that formulas were not translated as prose.
-- Check that inline formulas use either verified compatible delimiters outside code spans/blocks or the unambiguous Unicode profile. Preview representative inline notation, a display formula, and a table formula in the requested readers when available. Syntax validation alone does not establish rendered compatibility; report any unverified reader explicitly.
+- Check compatible inline delimiters and representative inline, display and table formulas in the intended readers when available. Syntax validation alone does not establish rendered compatibility; disclose unverified behavior.
 - Check that problem/exercise numbers, MATLAB or other code commands, figure/table captions, and image references were not dropped.
 - Check that every meaningful source figure/table/screenshot is either referenced by a Markdown image link in the translated Markdown (and any explicitly requested companion) or explicitly accounted for if extraction failed. Placeholder-only image notes are not acceptable when the image asset can be extracted.
 - Check that Markdown does not use full-page screenshots as substitutes for local figures/tables/screenshots unless explicitly justified by the source layout.
@@ -137,8 +136,8 @@ python3 scripts/validate_markdown_assets.py /absolute/path/to/source.zh.md --min
 - Treat a missing image asset, broken relative link, or image count below the inventory as a delivery blocker. Do not claim that images were preserved until the validator passes.
 - Check that section titles and table headers are translated consistently.
 - Validate HTML heading anchors, image/stylesheet/font targets, source-to-reader coverage, and offline math rendering. Record any untested visual behavior separately from structural validation.
-- Final delivery links must point to the HTML index and HTML report; Markdown stays local; do not add Markdown file links to reading pages.
-- Confirm the shared navigation reaches every delivered manuscript, all return/source/counterpart links resolve, and assets resolve from the final locations. Updating an existing translation must also reconcile its existing navigation node and report entry. Do not create duplicate indexes or rewrite unchanged navigation just to change its date.
+- Final delivery links point to actual generated HTML entries; only include a report if one was independently required and created.
+- Confirm navigation reaches each delivered manuscript and all source, counterpart, return and asset links resolve; reconcile changed nodes without duplicate indexes or date-only rewrites.
 - For slide-image Markdown, check that the number of `## 幻灯片 N` sections equals the source slide count and every `assets/<source-stem>/slides/slide-XX.png` link exists.
 
 ## Output Rules
@@ -173,7 +172,7 @@ Read [references/output-rules.md](./references/output-rules.md) when the documen
 
 - Process files one by one.
 - Keep filenames parallel to the originals so the user can match each Markdown file to its source.
-- Beside each source file, produce `<source-stem>.zh.md` plus its derived `.zh.html` by default (or the explicitly requested target-language pair); share that directory’s `assets/` container and `index.html`.
+- Beside each source file, produce `<source-stem>.zh.md` plus its derived `.zh.html` by default (or the explicitly requested target-language pair); share that directory’s `assets/` container and `00 - 文件索引.html`（或既有入口）.
 - If terminology repeats across files, maintain a shared glossary in your working notes while translating the batch.
 
 ## Refusal Boundary
@@ -183,3 +182,7 @@ Read [references/output-rules.md](./references/output-rules.md) when the documen
 - Do not silently drop screenshots or embedded images from the translated Markdown or an explicitly requested companion, and do not use placeholders or full-page screenshots instead of available extractable or croppable local assets.
 - Do not use translation MCPs for this skill.
 
+
+## 任务报告
+
+不因翻译、归档或生成索引而强制创建报告。任务量较大、存在多项成果或有用户待确认事项时，另行使用 [task-work-report](../task-work-report/SKILL.md)。报告只写已完成和待审核确认，详细来源记录与课程正文单独保留。

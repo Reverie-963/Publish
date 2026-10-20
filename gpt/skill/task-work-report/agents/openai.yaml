@@ -1,0 +1,4 @@
+interface:
+  display_name: "任务工作报告"
+  short_description: "简洁说明已完成的工作与需要用户审核确认的事项，避免语义重复"
+  default_prompt: "使用 $task-work-report 为本次任务写一份简洁报告，只保留已完成和需要我审核、确认两部分。"

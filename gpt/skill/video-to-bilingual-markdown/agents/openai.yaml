@@ -1,4 +1,4 @@
 interface:
   display_name: "视频文字版与中文翻译"
   short_description: "提取带时间戳的视频双语文稿，截图按视频分组并更新统一导航"
-  default_prompt: "Use $maintain-html-index for shared navigation and HTML readers. Use $video-to-bilingual-markdown to turn these lecture videos into timestamped original-language and Simplified Chinese Markdown with complete key-page screenshots, saving both manuscripts beside the video, sharing screenshots under assets grouped by video, and updating the same existing navigation used by document translation and Moodle archiving."
+  default_prompt: "使用 $video-to-bilingual-markdown 完成本技能任务；需要导航时调用 $maintain-html-index，工作量需要报告时另行调用 $task-work-report。"

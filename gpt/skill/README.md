@@ -4,7 +4,8 @@
 
 | 技能 | 用途 |
 |---|---|
-| [maintain-html-index](maintain-html-index/SKILL.md) | 独立维护 HTML 索引、折叠树、相对链接与配套阅读页 |
+| [maintain-html-index](maintain-html-index/SKILL.md) | 文件夹 HTML 浏览、搜索、视图切换与多格式预览 |
+| [task-work-report](task-work-report/SKILL.md) | 简洁说明已完成工作与待用户审核确认事项 |
 | [translate-docs-to-markdown](translate-docs-to-markdown/SKILL.md) | 文档中文 Markdown 翻译与 HTML 阅读交付 |
 | [moodle-course-archive](moodle-course-archive/SKILL.md) | Moodle 课程归档、增量补齐与条目对应 |
 | [video-to-bilingual-markdown](video-to-bilingual-markdown/SKILL.md) | 带时间戳和截图的双语视频文稿 |
@@ -29,12 +30,14 @@ npm ci --ignore-scripts --no-audit --no-fund
 
 依赖版本由 `package-lock.json` 锁定，不需要把 `node_modules` 发布到仓库。
 
-## 索引拆分
+## 索引与报告独立
 
-索引规则、导航模板、展开状态脚本、阅读页样式、生成器和 Node 依赖集中在 `maintain-html-index`。调用方负责内容和资料对应关系，索引技能负责导航与链接校验。翻译技能保留旧生成脚本的兼容入口，避免已有调用失效。
+`maintain-html-index` 只扫描已有文件并生成预览，默认入口为 `00 - 文件索引.html`，配套内容集中在 `.file-index/`。Word、PPT、PDF 等提供页面预览，Excel 提供工作表视图，其他类型见 [支持范围](maintain-html-index/references/file-previews.md)。Python 依赖见 `requirements.txt`；Office/PDF 版面转换需要 LibreOffice 和 Poppler。
 
-报告继续沿用现有内容和渲染规则，本次不重做报告结构，也不迁移已有课程成果。
+`task-work-report` 按任务量和用户要求启用，只写“已完成”和“需要你审核、确认”。索引不会自动创建报告；报告已存在时才按普通文件生成预览。文章审核工具 `report-review-html` 保持独立用途。
 
-## 本次验证范围
+本地课程成果不随技能更新自动迁移。原 Markdown 阅读页脚本保留兼容入口。
 
-10 个技能的结构校验通过。索引生成流程在临时样例中验证了公式、图片、重复标题锚点、中文路径、双语输出、旧脚本兼容、索引重复运行不变及 Markdown 原稿不变。未对全部技能的外部服务执行端到端测试，未把静态检查视为浏览器交互实测。
+## 验证范围
+
+测试包含常见文档、旧版 Office、开放文档、表格、图片、音视频、文本、压缩包，以及未知和损坏样例。检查原件不变、本地链接、增量复用和无报告目录；界面逻辑采用 DOM 模拟。真实浏览器显示、音视频播放和本机 file:// 行为需要单独实测，不能由静态检查推断。

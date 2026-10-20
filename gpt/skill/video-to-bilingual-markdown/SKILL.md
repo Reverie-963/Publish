@@ -15,9 +15,8 @@ Never overwrite the video. Process batch inputs one video at a time. This remain
 
 Use [maintain-html-index](../maintain-html-index/SKILL.md) for shared HTML readers and navigation. Keep both manuscripts beside the video with its full stem and activity number; share relative screenshots under `assets/<video-stem>/screens/`. Do not create `_视频讲稿/`, `_翻译/`, or `文稿索引/` wrappers. Keep working JSON and contact sheets outside the study folder.
 
-After content review, pass the root, affected manuscripts, source video, verified online/subtitle links, existing order, and prepared report notes to the index skill. Explicitly request both language HTML readers (`--include-originals`) for this bilingual-video workflow. Retain source/counterpart/index links in the local Markdown. Use the shared skill’s migration procedure only when movement is in scope; preserve unrelated materials and user edits.
+After content review, pass the root, affected manuscripts, source video, verified online/subtitle links, existing order to the index skill. Explicitly request both language HTML readers (`--include-originals`) for this bilingual-video workflow. Retain source/counterpart/index links in the local Markdown. Use the shared skill’s migration procedure only when movement is in scope; preserve unrelated materials and user edits.
 
-The index skill maintains one shared navigation and renders existing report content; transcription, screenshots, translation, and report coverage conclusions remain this skill’s responsibility.
 
 ## Workflow
 
@@ -115,3 +114,7 @@ Treat a missing image, broken relative path, out-of-order timestamp, image-set m
 - Uncertain transcription is disclosed instead of guessed.
 - Temporary audio and redundant frame dumps are removed; auditable JSON and contact sheets can remain in the task working directory outside the study folder. Only final referenced screenshots belong in `assets/<video-stem>/screens/`.
 - Each completed task updates the shared navigation without creating duplicate video/translation indexes; the video and document translation skills remain separate entrypoints.
+
+## 任务报告
+
+不因翻译、归档或生成索引而强制创建报告。任务量较大、存在多项成果或有用户待确认事项时，另行使用 [task-work-report](../task-work-report/SKILL.md)。报告只写已完成和待审核确认，详细来源记录与课程正文单独保留。

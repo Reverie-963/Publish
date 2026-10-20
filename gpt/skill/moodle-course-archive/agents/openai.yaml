@@ -1,4 +1,4 @@
 interface:
   display_name: "Moodle 课程资料归档"
   short_description: "增量归档 Moodle 资料，只补新增与解锁内容，同步网页编号、链接和统一导航"
-  default_prompt: "Use $maintain-html-index for shared navigation and HTML readers. 使用 $moodle-course-archive，将当前 Moodle 课程归档或增量更新到指定文件夹；复用已有可用文件，只补新增或解锁的缺失资料，按网页顺序同步编号和本地链接，与翻译技能共用同目录文稿及 assets 分组规则，保留本地 Markdown 并生成带目录的 HTML 阅读版，每次完成后更新简洁 HTML 索引及 HTML/Markdown 报告，直接交付 HTML 索引和 HTML 报告链接。"
+  default_prompt: "使用 $moodle-course-archive 完成本技能任务；需要导航时调用 $maintain-html-index，工作量需要报告时另行调用 $task-work-report。"

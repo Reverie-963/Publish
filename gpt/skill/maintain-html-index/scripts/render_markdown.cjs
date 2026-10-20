@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('fs'),path=require('path'),MarkdownIt=require('markdown-it'),katex=require('katex'),texmath=require('markdown-it-texmath');
+const input=JSON.parse(fs.readFileSync(0,'utf8')),md=new MarkdownIt({html:false}).use(texmath,{engine:katex,delimiters:['dollars','brackets'],katexOptions:{throwOnError:true,trust:false}});
+const encode=p=>p.split(path.sep).map(encodeURIComponent).join('/');
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tokens=md.parse(fs.readFileSync(input.source,'utf8'),{}),used=new Map(),headings=[],issues=[];
+for(let i=0;i<tokens.length;i++)if(tokens[i].type==='heading_open'){const label=(tokens[i+1].children||[]).map(t=>t.content||'').join('');const base=label.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu,'').trim().replace(/\s+/g,'-')||'section';const n=used.get(base)||0;used.set(base,n+1);const id=base+(n?'-'+n:'');tokens[i].attrSet('id',id);headings.push({label,id,level:+tokens[i].tag.slice(1)});}
+function visit(ts){for(const t of ts){const attr=t.type==='image'?'src':t.type==='link_open'?'href':null;if(attr){const u=t.attrGet(attr);if(u&&!/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(u)){const m=u.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/);let target;try{target=path.resolve(path.dirname(input.source),decodeURIComponent(m[1]));}catch{target=path.resolve(path.dirname(input.source),m[1]);}if(!fs.existsSync(target))issues.push('链接目标不存在：'+u);const out=attr==='href'&&input.mapping[target]||target;t.attrSet(attr,encode(path.relative(path.dirname(input.output),out))+(m[2]||'')+(m[3]||''));}}if(t.children)visit(t.children);}}visit(tokens);
+const body=md.renderer.render(tokens,md.options,{});
+if(/katex-error|texmath-error/.test(body))issues.push('部分公式未能渲染，请检查原文。');
+const toc=headings.length>1?'<button class="toc-toggle" aria-expanded="false" aria-controls="reader-toc">目录 →</button><aside class="toc-panel" id="reader-toc" inert><nav class="toc" aria-label="文章目录">'+headings.map(h=>'<a href="#'+encodeURIComponent(h.id)+'" style="margin-left:'+((h.level-1)*12)+'px">'+esc(h.label)+'</a>').join('')+'</nav></aside>':'';
+process.stdout.write(JSON.stringify({body:toc+body,issues}));
