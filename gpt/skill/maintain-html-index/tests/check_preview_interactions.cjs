@@ -34,7 +34,7 @@ try{
  const cases=[fs.readFileSync(path.join(root,'00 - 文件索引.html'),'utf8'),content(records.find(r=>r.type==='pdf')),content(records.find(r=>r.type==='py')),fs.readFileSync(path.join(root,decodeURIComponent(JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).directories[0].preview)),'utf8')];
  for(const html of cases){
   const {w,doc,key}=setup(html),trigger=doc.querySelector('.page-scale-menu'),reset=doc.querySelector('.page-scale'),panel=doc.querySelector('.page-zoom-panel');
-  assert(trigger&&panel.hidden);assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
+  assert(trigger&&panel.hidden);if(doc.querySelector('.layout')){assert(doc.querySelector('.reader-sidebar .page-zoom'));assert(!doc.querySelector('.reader-heading .page-zoom'));}assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
   const act=name=>doc.querySelector('[data-scale-action="'+name+'"]').click();
   trigger.click();assert(!panel.hidden);act('in');assert.equal(doc.body.style.zoom,'1.1');assert.equal(w.localStorage.getItem(key),'1.1');assert.equal(reset.textContent,'110%');w.localStorage.setItem(key,'1.25');w.dispatchEvent(new w.Event('pageshow'));assert.equal(doc.body.style.zoom,'1.25');
   reset.click();assert.equal(doc.body.style.zoom,'1');assert(panel.hidden,'one click resets without opening controls');assert.equal(reset.textContent,'100%');trigger.click();

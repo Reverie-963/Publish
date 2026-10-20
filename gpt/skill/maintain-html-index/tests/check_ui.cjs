@@ -87,7 +87,7 @@ const tick=()=>new Promise(r=>setTimeout(r,25));
  const denied=open(fs.readFileSync(path.join(root,decodeURIComponent(md.preview)),'utf8'),null,true);
  denied.window.eval(fs.readFileSync(path.join(root,'.file-index/assets/reader.js'),'utf8'));denied.window.document.querySelector('.toc-toggle').click();assert(!denied.window.document.querySelector('.toc-panel').hidden);
  rd.window.eval(fs.readFileSync(path.join(root,'.file-index/assets/page-zoom.js'),'utf8'));
- assert(rdoc.querySelector('.reader-heading > .page-zoom'));
+ assert(rdoc.querySelector('.reader-sidebar .toc-toolbar > .page-zoom'));assert(rdoc.querySelector('.reader-sidebar .toc-toolbar > .toc-toggle'));assert(!rdoc.querySelector('.reader-heading .page-zoom'));
  rdoc.querySelector('[data-scale-action="in"]').click();assert.equal(parseFloat(panel.style.maxHeight),rd.window.innerHeight/1.1-96);
  for(let i=0;i<3;i++)rdoc.querySelector('[data-scale-action="in"]').click();assert(rdoc.querySelector('.layout').classList.contains('toc-compact'));assert(panel.hidden,'compact layout begins collapsed');
  toggle.click();assert(!panel.hidden);assert(parseFloat(panel.style.maxHeight)<=rd.window.innerHeight/Number(rdoc.body.style.zoom)*.3);
