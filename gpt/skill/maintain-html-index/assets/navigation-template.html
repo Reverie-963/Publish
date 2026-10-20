@@ -27,12 +27,12 @@
     @media (prefers-color-scheme: dark) { :root { --bg: #202124; --ink: #e4e6eb; --muted: #a6acb6; --line: #383c43; --hover: #352b49; --link: #c4b5fd; } }
 
   </style>
-<style id="index-controls-style">.index-actions{display:flex;flex-shrink:0;gap:8px}.index-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:9px}.index-heading h1{margin:0;flex:1;min-width:0}.tree-toggle{flex-shrink:0;font:inherit;font-size:13px;white-space:nowrap;color:var(--link);background:transparent;border:1px solid var(--line);border-radius:5px;padding:4px 10px;cursor:pointer}.tree-toggle:hover{background:var(--hover)}.tree-toggle:focus-visible{outline:2px solid var(--link);outline-offset:3px}.tree-toggle:disabled{opacity:.5;cursor:default}</style>
+<style id="index-controls-style">.index-actions{display:flex;flex-shrink:0}.index-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:9px}.index-heading h1{margin:0;flex:1;min-width:0}.tree-toggle{display:grid;place-items:center;width:40px;height:40px;padding:8px;color:var(--muted);background:none;border:0;border-radius:0;box-shadow:none;cursor:pointer}.tree-toggle:hover{color:var(--link)}.tree-toggle:focus-visible{outline:2px solid var(--link);outline-offset:3px}.tree-toggle:disabled{opacity:.35;cursor:default}.tree-toggle[data-action="expand"] .collapse-icon,.tree-toggle[data-action="collapse"] .expand-icon{display:none}</style>
 </head>
 <body>
   <main>
     <header>
-      <div class="index-heading"><h1>{{TITLE}}</h1><div class="index-actions" role="group" aria-label="索引展开控制"><button class="tree-toggle" type="button" data-tree-action="expand">全部展开</button><button class="tree-toggle" type="button" data-tree-action="collapse">全部收起</button></div></div>
+      <div class="index-heading"><h1>{{TITLE}}</h1><div class="index-actions"><button class="tree-toggle" type="button" data-tree-toggle data-action="expand" title="全部展开" aria-label="全部展开"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="expand-icon" d="m6 8 6-5 6 5 M6 16l6 5 6-5"/><path class="collapse-icon" d="m6 3 6 5 6-5 M6 21l6-5 6 5"/></svg></button></div></div>
       <!-- NAV_LINKS: 仅上一级、总索引、课程页面；报告作为 TREE 内的普通文件叶节点。 -->
       <nav aria-label="导航">{{NAV_LINKS}}</nav>
     </header>
@@ -47,9 +47,15 @@
   const tree = document.querySelector('.tree');
   if (!tree) return;
   const branches = Array.from(tree.querySelectorAll('details'));
-  const buttons = Array.from(document.querySelectorAll('[data-tree-action]'));
+  const buttons = Array.from(document.querySelectorAll('[data-tree-toggle]'));
   function syncButton() {
-    buttons.forEach(button => { button.disabled = branches.length === 0; });
+    const anyOpen = branches.some(node => node.open);
+    buttons.forEach(button => {
+      button.disabled = branches.length === 0;
+      button.dataset.action = anyOpen ? 'collapse' : 'expand';
+      button.title = anyOpen ? '全部收起' : '全部展开';
+      button.setAttribute('aria-label', button.title);
+    });
   }
   const label = node => node.querySelector('summary').textContent.trim();
   const parent = node => node.parentElement.closest('details');
@@ -92,7 +98,7 @@
   branches.forEach(node => node.addEventListener('toggle', save));
   tree.addEventListener('click', event => { if (event.target.closest('a')) save(); }, true);
   buttons.forEach(button => button.addEventListener('click', () => {
-    const open = button.dataset.treeAction === 'expand';
+    const open = !branches.some(node => node.open);
     branches.forEach(node => { node.open = open; });
     save();
   }));

@@ -31,8 +31,13 @@ def command(args,timeout=120):
  return r
 
 def page(title,body,out,root,index):
- css=rel(out,root/'.file-index/assets/browser.css');math=rel(out,root/'.file-index/assets/katex/katex.min.css')
- return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><link rel="stylesheet" href="'+css+'"><link rel="stylesheet" href="'+math+'"><body><main class="preview"><nav><a href="'+rel(out,index)+'" target="_top">返回文件索引</a></nav>'+body+'</main><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script></body></html>'
+ css=(SKILL/'assets/reader.css').read_text()+'\n'+(SKILL/'assets/preview.css').read_text()
+ math=rel(out,root/'.file-index/assets/katex/katex.min.css')
+ toc=''
+ start=body.find('<button class="toc-toggle"')
+ if start>=0:
+  end=body.index('</aside>',start)+len('</aside>');toc,body=body[start:end],body[:start]+body[end:]
+ return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article><a class="return-index" href="'+rel(out,index)+'">返回总索引</a>'+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
@@ -168,7 +173,7 @@ def main():
  work.mkdir(exist_ok=True);assets=work/'assets';assets.mkdir(exist_ok=True)
  # Claim only a new directory before generation, so an interrupted run is recoverable.
  if not manifest.exists():write(manifest,json.dumps({'generator':'codex-folder-index-v2','files':[]}))
- for name in ['browser.css','browser.js','reader.js']:write(assets/name,(SKILL/'assets'/name).read_text())
+ for name in ['reader.js']:write(assets/name,(SKILL/'assets'/name).read_text())
  katex=SKILL/'node_modules/katex/dist'
  if katex.is_dir():
   (assets/'katex').mkdir(exist_ok=True);shutil.copy2(katex/'katex.min.css',assets/'katex/katex.min.css');shutil.copytree(katex/'fonts',assets/'katex/fonts',dirs_exist_ok=True)
@@ -185,7 +190,7 @@ def main():
    if name=='index.html' and ('codex-index-state:start' in f.read_text(errors='replace') or MARKER in f.read_text(errors='replace')):continue
    sources.append(f)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
- version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','assets/browser.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
+ version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','assets/reader.css','assets/preview.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
  links_hash=hashlib.sha256(json.dumps(sorted(str(f.relative_to(root)) for f in sources)).encode()).hexdigest()
  records=[];reused=0
  for src in sources:
@@ -212,20 +217,23 @@ def main():
   branch=tree
   for folder in f['path'].split('/')[:-1]:branch=branch.setdefault(folder,{})
   branch.setdefault(None,[]).append(f)
- def leaf(f,card=False):
-  return '<a class="'+('card' if card else 'file-link')+'" data-file="'+f['id']+'" href="'+ESC(f['preview'],quote=True)+'"><span class="tag">'+ESC(f['type'].upper())+'</span>'+ESC(f['label'])+('<small>'+ESC(str(Path(f['path']).parent))+'</small>' if card else '')+'</a>'
- def branch_html(node,prefix=''):
+ def leaf(f):
+  return '<a class="leaf" href="'+ESC(f['preview'],quote=True)+'">'+ESC(f['label'])+'</a>'
+ def branch_html(node):
   text=''
   for k,v in node.items():
    if k is None:text+=''.join('<li>'+leaf(f)+'</li>' for f in v)
-   else:text+='<li><details data-folder="'+ESC(prefix+k,quote=True)+'"><summary>'+ESC(k)+'</summary><ul>'+branch_html(v,prefix+k+'/')+'</ul></details></li>'
+   else:text+='<li><details><summary class="folder">'+ESC(k)+'</summary><ul>'+branch_html(v)+'</ul></details></li>'
   return text
- types=sorted(set(f['type'] for f in records));title=args.title or root.name
- body='''<!doctype html>\n'''+MARKER+'''\n<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'''+ESC(title)+'''</title><link rel="stylesheet" href=".file-index/assets/browser.css"><body><header class="top"><button id="directory-toggle" aria-expanded="true" aria-label="切换文件目录">☰</button><span class="brand">▧</span><h1>'''+ESC(title)+'''</h1></header><div class="shell"><aside class="directory"><div class="tools"><input id="search" type="search" placeholder="搜索文件名称或路径" aria-label="搜索文件"><select id="type-filter" aria-label="筛选文件类型"><option value="">全部类型</option>'''+''.join('<option value="'+ESC(t,quote=True)+'">'+ESC(t.upper())+'</option>' for t in types)+'''</select><button data-view="list" aria-pressed="true">目录</button><button data-view="cards" aria-pressed="false">卡片</button><button data-tree-action="expand">全部展开</button><button data-tree-action="collapse">全部收起</button></div><ul class="tree">'''+branch_html(tree)+'''</ul></aside><section class="viewer"><div class="viewer-bar"><strong id="preview-title">选择文件查看预览</strong><div><a id="open-preview" href="#" target="_blank" rel="noopener">单独打开</a><a id="original" href="#" target="_blank" rel="noopener">打开原件</a></div></div><p class="empty">从左侧选择文件，或切换到卡片视图。</p><div class="cards hidden">'''+''.join(leaf(f,True) for f in records)+'''</div><iframe id="preview-frame" title="文件预览" class="hidden" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"></iframe></section></div><script id="file-data" type="application/json">'''+json.dumps(records,ensure_ascii=False).replace('<','\\u003c')+'''</script><script src=".file-index/assets/browser.js"></script></body></html>'''
+ title=args.title or root.name
+ template=(SKILL/'assets/navigation-template.html').read_text()
+ substitutions={'TITLE':ESC(title),'NAV_LINKS':'','TREE':branch_html(tree)}
+ body=template.replace('<!doctype html>','<!doctype html>\n'+MARKER)
+ body=re.sub(r'\{\{(TITLE|NAV_LINKS|TREE)\}\}',lambda m:substitutions[m.group(1)],body)
  write(index,body)
  # Maintain a previously generated alias only. Never replace an arbitrary index.html.
  legacy=root/'index.html'
- if legacy.exists() and ('codex-index-state:start' in legacy.read_text(errors='replace') or MARKER in legacy.read_text(errors='replace')):
+ if legacy!=index and legacy.exists() and ('codex-index-state:start' in legacy.read_text(errors='replace') or MARKER in legacy.read_text(errors='replace')):
   write(legacy,'<!doctype html>'+MARKER+'<meta charset="utf-8"><meta http-equiv="refresh" content="0;url='+ESC(quote(args.name),quote=True)+'"><a href="'+quote(args.name)+'">打开文件索引</a>')
  write(manifest,json.dumps({'generator':'codex-folder-index-v2','version':version,'entry':args.name,'files':records},ensure_ascii=False,indent=2))
  print(json.dumps({'entry':str(index),'files':len(records),'reused':reused,'errors':[{'path':x['path'],'notes':x['notes']} for x in records if x['status']=='error'],'unsupported':[x['path'] for x in records if x['status']=='unsupported']},ensure_ascii=False,indent=2))

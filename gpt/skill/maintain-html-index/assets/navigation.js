@@ -3,9 +3,15 @@
   const tree = document.querySelector('.tree');
   if (!tree) return;
   const branches = Array.from(tree.querySelectorAll('details'));
-  const buttons = Array.from(document.querySelectorAll('[data-tree-action]'));
+  const buttons = Array.from(document.querySelectorAll('[data-tree-toggle]'));
   function syncButton() {
-    buttons.forEach(button => { button.disabled = branches.length === 0; });
+    const anyOpen = branches.some(node => node.open);
+    buttons.forEach(button => {
+      button.disabled = branches.length === 0;
+      button.dataset.action = anyOpen ? 'collapse' : 'expand';
+      button.title = anyOpen ? '全部收起' : '全部展开';
+      button.setAttribute('aria-label', button.title);
+    });
   }
   const label = node => node.querySelector('summary').textContent.trim();
   const parent = node => node.parentElement.closest('details');
@@ -48,7 +54,7 @@
   branches.forEach(node => node.addEventListener('toggle', save));
   tree.addEventListener('click', event => { if (event.target.closest('a')) save(); }, true);
   buttons.forEach(button => button.addEventListener('click', () => {
-    const open = button.dataset.treeAction === 'expand';
+    const open = !branches.some(node => node.open);
     branches.forEach(node => { node.open = open; });
     save();
   }));
