@@ -26,10 +26,10 @@ fs.mkdirSync(asset,{recursive:true});
 fs.copyFileSync(path.join(packageRoot,'dist','katex.min.css'),path.join(asset,'katex.min.css'));
 fs.cpSync(path.join(packageRoot,'dist','fonts'),path.join(asset,'fonts'),{recursive:true});
 fs.copyFileSync(path.join(packageRoot,'LICENSE'),path.join(asset,'KaTeX-LICENSE.txt'));
-for(const name of ['reader.css','reader.js'])fs.copyFileSync(path.join(__dirname,'..','assets',name),path.join(asset,name));
+for(const name of ['reader.css','reader.js','image-zoom.js'])fs.copyFileSync(path.join(__dirname,'..','assets',name),path.join(asset,name));
 const parsed=new Map();
 let activeFile='',mathCount=0;
-const md=new MarkdownIt({html:false,linkify:false,typographer:false}).use(texmath,{engine:katex,delimiters:['dollars','brackets']});
+const md=new MarkdownIt({html:false,linkify:false,typographer:false,highlight:require('./highlight_code.cjs').highlight}).use(texmath,{engine:katex,delimiters:['dollars','brackets']});
 for(const kind of ['math_inline','math_inline_double','math_block','math_block_eqno'])md.renderer.rules[kind]=(tokens,i)=>{
  const t=tokens[i],display=kind!=='math_inline';mathCount++;
  try {const str=katex.renderToString(t.content,{displayMode:display,throwOnError:true,trust:false,strict:'ignore',output:'htmlAndMathml'});return display?'<div class="math-display">'+str+(kind==='math_block_eqno'?'<span class="eqno">('+esc(t.info)+')</span>':'')+'</div>':str;}
@@ -87,7 +87,7 @@ for(const file of files){activeFile=file;mathCount=0;const out=mapping.get(file)
  const heading=headingMatch?headingMatch[1]:'<h1>'+esc(data.title)+'</h1>';
  if(headingMatch)body=body.slice(headingMatch[0].length);
  const readerHeader='<header class="reader-heading">'+heading+returnLink+'</header>';
- const page=`<!doctype html>\n${marker}\n<html lang="${file.endsWith('.original.md')?'en':'zh-CN'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="md-source-sha256" content="${before.get(file)}"><title>${esc(data.title)}</title><style>${fs.readFileSync(path.join(asset,'reader.css'),'utf8')}</style><link rel="stylesheet" href="${relative(out,path.join(asset,'katex.min.css'))}"></head><body id="reader-top"><button class="toc-toggle" type="button" aria-controls="reader-toc" aria-expanded="false" aria-label="展开目录">目录 →</button><aside id="reader-toc" class="toc-panel" aria-label="目录" inert><div class="toc-title">目录</div><nav aria-label="文稿目录">${toc(data.headings)}</nav></aside><div class="layout"><article>${readerHeader}${body}<a class="back-top" href="#reader-top">返回顶部 ↑</a></article></div><script src="${relative(out,path.join(asset,'reader.js'))}" defer></script></body></html>`;
+ const page=`<!doctype html>\n${marker}\n<html lang="${file.endsWith('.original.md')?'en':'zh-CN'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="md-source-sha256" content="${before.get(file)}"><title>${esc(data.title)}</title><style>${['reader.css','code.css','scrollbar.css','image-zoom.css'].map(name=>fs.readFileSync(path.join(__dirname,'..','assets',name),'utf8')).join('\n')}</style><link rel="stylesheet" href="${relative(out,path.join(asset,'katex.min.css'))}"></head><body id="reader-top"><button class="toc-toggle" type="button" aria-controls="reader-toc" aria-expanded="false" aria-label="展开目录">目录 →</button><aside id="reader-toc" class="toc-panel" aria-label="目录" inert><div class="toc-title">目录</div><nav aria-label="文稿目录">${toc(data.headings)}</nav></aside><div class="layout"><article>${readerHeader}${body}<a class="back-top" href="#reader-top">返回顶部 ↑</a></article></div><script src="${relative(out,path.join(asset,'reader.js'))}" defer></script><script src="${relative(out,path.join(asset,'image-zoom.js'))}" defer></script></body></html>`;
  fs.writeFileSync(out,page);stat.documents.push({source:path.relative(root,file),html:path.relative(root,out),sha256:before.get(file),headings:data.headings.length,images:(body.match(/<img /g)||[]).length,math:mathCount});
 }
 // Normalize generated leaf-based indexes without changing document bodies.
@@ -107,6 +107,8 @@ if(opt.indexes)for(const file of all.filter(f=>path.basename(f)==='index.html'))
   else updated=updated.replace(/(<h1\b[^>]*>[\s\S]*?<\/h1>)/,heading=>'<div class="index-heading">'+heading+actions+'</div>');
   const controlStyle=template.match(/<style id="index-controls-style">[\s\S]*?<\/style>/)[0];
   updated=updated.includes('id="index-controls-style"')?updated.replace(/<style id="index-controls-style">[\s\S]*?<\/style>/,()=>controlStyle):updated.replace('</head>',()=>controlStyle+'\n</head>');
+  const scrollbarStyle='<style id="scrollbar-style">'+fs.readFileSync(path.join(__dirname,'..','assets','scrollbar.css'),'utf8')+'</style>';
+  updated=updated.includes('id="scrollbar-style"')?updated.replace(/<style id="scrollbar-style">[\s\S]*?<\/style>/,()=>scrollbarStyle):updated.replace('</head>',()=>scrollbarStyle+'\n</head>');
   const stateScript='<!-- codex-index-state:start -->\n<script>\n'+fs.readFileSync(path.join(__dirname,'..','assets','navigation.js'),'utf8')+'</script>\n<!-- codex-index-state:end -->';
   const oldState=/<!-- codex-index-state:start -->[\s\S]*?<!-- codex-index-state:end -->/;
   updated=oldState.test(updated)?updated.replace(oldState,()=>stateScript):updated.replace('</body>',()=>stateScript+'\n</body>');

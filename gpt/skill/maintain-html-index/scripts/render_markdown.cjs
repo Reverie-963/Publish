@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('fs'),path=require('path'),MarkdownIt=require('markdown-it'),katex=require('katex'),texmath=require('markdown-it-texmath');
-const input=JSON.parse(fs.readFileSync(0,'utf8')),md=new MarkdownIt({html:false}).use(texmath,{engine:katex,delimiters:['dollars','brackets'],katexOptions:{throwOnError:true,trust:false}});
+const input=JSON.parse(fs.readFileSync(0,'utf8')),md=new MarkdownIt({html:false,highlight:require('./highlight_code.cjs').highlight}).use(texmath,{engine:katex,delimiters:['dollars','brackets'],katexOptions:{throwOnError:true,trust:false}});
 const encode=p=>p.split(path.sep).map(encodeURIComponent).join('/');
 const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tokens=md.parse(fs.readFileSync(input.source,'utf8'),{}),used=new Map([["reader-top",1],["reader-toc",1]]),headings=[],issues=[];

@@ -31,7 +31,7 @@ def command(args,timeout=120):
  return r
 
 def page(title,body,out,root,index):
- css=(SKILL/'assets/reader.css').read_text()+'\n'+(SKILL/'assets/preview.css').read_text()
+ css='\n'.join((SKILL/'assets'/name).read_text() for name in ['reader.css','preview.css','code.css','scrollbar.css','image-zoom.css'])
  math=rel(out,root/'.file-index/assets/katex/katex.min.css')
  toc=''
  start=body.find('<button class="toc-toggle"')
@@ -41,7 +41,7 @@ def page(title,body,out,root,index):
  heading=match.group(1) if match else '<h1>'+ESC(title)+'</h1>'
  if match:body=body[match.end():]
  header='<header class="reader-heading">'+heading+'<a class="return-index" href="'+rel(out,index)+'">返回总索引</a></header>'
- return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script></body></html>'
+ return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/image-zoom.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
@@ -158,7 +158,10 @@ def render(src,out,args,mapping):
   body=table(rows);notes.append('仅展示压缩包目录，未解压或执行内部文件。')
  elif ext in TEXT:
   if src.stat().st_size>args.max_text_bytes:raise RuntimeError('文本超出预览大小上限，请打开原件')
-  body='<pre><code>'+ESC(src.read_text(encoding='utf-8-sig'))+'</code></pre>'
+  code=src.read_text(encoding='utf-8-sig')
+  result=subprocess.run(['node',str(SKILL/'scripts/highlight_code.cjs')],input=json.dumps({'code':code,'filename':src.name}),capture_output=True,text=True)
+  if result.returncode:raise RuntimeError('代码配色失败：'+result.stderr[-300:])
+  body=result.stdout
  else:
   body=notice('此类型尚无内容预览，请使用“打开原件”。');status='unsupported';notes=['此类型尚无内容预览']
  return title+''.join(notice(x) for x in notes)+body,notes,status
@@ -177,7 +180,7 @@ def main():
  work.mkdir(exist_ok=True);assets=work/'assets';assets.mkdir(exist_ok=True)
  # Claim only a new directory before generation, so an interrupted run is recoverable.
  if not manifest.exists():write(manifest,json.dumps({'generator':'codex-folder-index-v2','files':[]}))
- for name in ['reader.js']:write(assets/name,(SKILL/'assets'/name).read_text())
+ for name in ['reader.js','image-zoom.js']:write(assets/name,(SKILL/'assets'/name).read_text())
  katex=SKILL/'node_modules/katex/dist'
  if katex.is_dir():
   (assets/'katex').mkdir(exist_ok=True);shutil.copy2(katex/'katex.min.css',assets/'katex/katex.min.css');shutil.copytree(katex/'fonts',assets/'katex/fonts',dirs_exist_ok=True)
@@ -196,7 +199,7 @@ def main():
    sources.append(f)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
  for directory in directories:mapping[str(root/directory)]=str(work/'folders'/hashlib.sha256(directory.encode()).hexdigest()[:16]/'index.html')
- version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','assets/reader.css','assets/preview.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
+ version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/highlight_code.cjs','package-lock.json','assets/reader.css','assets/preview.css','assets/code.css','assets/scrollbar.css','assets/image-zoom.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
  links_hash=hashlib.sha256(json.dumps(sorted([str(f.relative_to(root)) for f in sources]+directories)).encode()).hexdigest()
  records=[];reused=0
  for src in sources:
@@ -245,9 +248,9 @@ def main():
   return text
  template=(SKILL/'assets/navigation-template.html').read_text()
  def index_page(current,title,node,prefix='',nav=''):
-  substitutions={'TITLE':ESC(title),'NAV_LINKS':nav,'TREE':branch_html(node,current,prefix)}
+  substitutions={'TITLE':ESC(title),'NAV_LINKS':nav,'TREE':branch_html(node,current,prefix),'SCROLLBAR_STYLE':(SKILL/'assets/scrollbar.css').read_text()}
   body=template.replace('<!doctype html>','<!doctype html>\n'+MARKER)
-  write(current,re.sub(r'\{\{(TITLE|NAV_LINKS|TREE)\}\}',lambda m:substitutions[m.group(1)],body))
+  write(current,re.sub(r'\{\{(TITLE|NAV_LINKS|TREE|SCROLLBAR_STYLE)\}\}',lambda m:substitutions[m.group(1)],body))
  index_page(index,args.title or root.name,tree)
  directory_records=[]
  for key,data in folders.items():
