@@ -16,28 +16,41 @@ try{
   const parsed=JSON.parse(cp.execFileSync(process.execPath,[path.join(skill,'scripts/render_markdown.cjs')],{input:JSON.stringify({source,output:path.join(tmp,'preview.html'),mapping:{}}),encoding:'utf8'}));
   const md=parse(parsed.body);assert.equal(md.window.document.querySelector('code').textContent,'print("hello")\n');assert(md.window.document.querySelector('code span'));
  }finally{fs.rmSync(tmp,{recursive:true});}
- const record=records.find(r=>r.type==='pdf'),d=parse(content(record)),w=d.window,doc=w.document,source=doc.querySelector('figure img');
- Object.defineProperties(source,{naturalWidth:{value:1800},naturalHeight:{value:1200}});
- w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
- w.eval(fs.readFileSync(path.join(root,'.file-index/assets/image-zoom.js'),'utf8'));
- const dialog=doc.querySelector('.image-zoom'),stage=doc.querySelector('.zoom-stage'),image=doc.querySelector('.zoom-image');
- Object.defineProperties(stage,{clientWidth:{value:900,configurable:true},clientHeight:{value:600,configurable:true}});stage.getBoundingClientRect=()=>({left:0,top:0,width:900,height:600});
- assert(dialog&&!dialog.open);assert.equal(source.tabIndex,0);assert.equal(source.getAttribute('role'),'button');assert(!doc.querySelector('.reader-heading .zoom-toolbar'));
- source.focus();source.click();assert(dialog.open);assert.equal(doc.body.style.overflow,'hidden');assert(parseFloat(image.style.width)<=900&&parseFloat(image.style.height)<=600);
- const action=name=>dialog.querySelector('[data-zoom="'+name+'"]').click();
- action('actual');assert.equal(image.style.width,'1800px');assert(stage.classList.contains('can-pan'));
- const before={left:stage.scrollLeft,top:stage.scrollTop};action('in');assert.equal(image.style.width,'2250px');
- assert(Math.abs((before.left+450)-((stage.scrollLeft+450)/1.25))<.01,'zoom retains viewed horizontal point');
- assert(Math.abs((before.top+300)-((stage.scrollTop+300)/1.25))<.01,'zoom retains viewed vertical point');
- const wheel=new w.WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true});stage.dispatchEvent(wheel);assert(!wheel.defaultPrevented,'ordinary scrolling is native');
- const magnify=new w.WheelEvent('wheel',{deltaY:-10,ctrlKey:true,clientX:200,clientY:150,bubbles:true,cancelable:true});stage.dispatchEvent(magnify);assert(magnify.defaultPrevented);assert(parseFloat(image.style.width)>2250);
- const browserZoom=new w.KeyboardEvent('keydown',{key:'+',metaKey:true,bubbles:true,cancelable:true});dialog.dispatchEvent(browserZoom);assert(!browserZoom.defaultPrevented);
- function pointer(type,x,y){const e=new w.MouseEvent(type,{clientX:x,clientY:y,button:0,bubbles:true,cancelable:true});Object.defineProperties(e,{pointerType:{value:'mouse'},pointerId:{value:1}});stage.dispatchEvent(e);}
- const start=stage.scrollLeft;pointer('pointerdown',400,200);pointer('pointermove',350,180);assert.equal(stage.scrollLeft,start+50);pointer('pointerup',350,180);assert(!stage.classList.contains('dragging'));
- action('fit');assert(parseFloat(image.style.width)<=900);assert.equal(stage.scrollLeft,0);assert.equal(stage.scrollTop,0);
- for(let i=0;i<30;i++)action('in');assert(dialog.querySelector('[data-zoom="in"]').disabled);for(let i=0;i<80;i++)action('out');assert(dialog.querySelector('[data-zoom="out"]').disabled);
- dialog.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(!dialog.open);assert.equal(doc.body.style.overflow,'');assert.equal(doc.activeElement,source);
- source.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert(dialog.open);action('close');
- const plain=parse(content(records.find(r=>r.type==='txt')));plain.window.eval(fs.readFileSync(path.join(root,'.file-index/assets/image-zoom.js'),'utf8'));assert(!plain.window.document.querySelector('dialog'));
- console.log(JSON.stringify({passed:['C/Python/JSON/YAML syntax colors with unchanged text','plain text remains plain','escaped code and Markdown fenced highlighting','viewer hidden until image activation','fit and original size','zoom maintains viewed point','ordinary scrolling and browser shortcuts preserved','drag panning','zoom bounds','Escape and focus restoration','no viewer on text-only pages'],scope:'DOM simulation; real-browser appearance and gesture testing not performed'},null,2));
+ const js=fs.readFileSync(path.join(skill,'assets/page-zoom.js'),'utf8');
+ function setup(html, prior, blocked=false){
+  const d=parse(html),w=d.window;
+  Object.defineProperty(w,'innerWidth',{value:1000});Object.defineProperty(w,'innerHeight',{value:800});
+  w.scrollTo=(x,y)=>{Object.defineProperty(w,'scrollY',{value:y,configurable:true});};
+  const source=w.document.querySelector('script[src$="page-zoom.js"]');assert(source,'all generated pages include page zoom');
+  const key='file-index:page-scale:v1:'+new URL('.',source.src).href;
+  if(prior)w.localStorage.setItem(key,String(prior));
+  if(blocked)for(const name of ['localStorage','sessionStorage'])Object.defineProperty(w,name,{get(){throw Error('blocked');}});
+  w.eval(js);return {d,w,doc:w.document,key};
+ }
+ const cases=[fs.readFileSync(path.join(root,'00 - 文件索引.html'),'utf8'),content(records.find(r=>r.type==='pdf')),content(records.find(r=>r.type==='py')),fs.readFileSync(path.join(root,decodeURIComponent(JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).directories[0].preview)),'utf8')];
+ for(const html of cases){
+  const {w,doc,key}=setup(html),trigger=doc.querySelector('.page-scale'),panel=doc.querySelector('.page-zoom-panel');
+  assert(trigger&&panel.hidden);assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
+  const act=name=>doc.querySelector('[data-scale-action="'+name+'"]').click();
+  trigger.click();assert(!panel.hidden);act('in');assert.equal(doc.body.style.zoom,'1.1');assert.equal(w.localStorage.getItem(key),'1.1');assert.equal(trigger.textContent,'110%');w.localStorage.setItem(key,'1.25');w.dispatchEvent(new w.Event('pageshow'));assert.equal(doc.body.style.zoom,'1.25');
+  act('reset');assert.equal(doc.body.style.zoom,'1');act('out');assert.equal(doc.body.style.zoom,'0.9');
+  doc.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(panel.hidden);assert.equal(doc.activeElement,trigger);
+  function keypress(key,opts={}){const e=new w.KeyboardEvent('keydown',{key,metaKey:true,bubbles:true,cancelable:true,...opts});doc.dispatchEvent(e);return e;}
+  assert(keypress('=').defaultPrevented);assert.equal(doc.body.style.zoom,'1');assert(keypress('+',{metaKey:false,ctrlKey:true}).defaultPrevented);assert.equal(doc.body.style.zoom,'1.1');
+  assert(keypress('0').defaultPrevented);assert.equal(doc.body.style.zoom,'1');assert(!keypress('x').defaultPrevented);
+  const nativeWheel=new w.WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true});doc.dispatchEvent(nativeWheel);assert(!nativeWheel.defaultPrevented);
+  const pinch=new w.WheelEvent('wheel',{deltaY:-10,ctrlKey:true,clientX:200,clientY:150,bubbles:true,cancelable:true});doc.dispatchEvent(pinch);assert(pinch.defaultPrevented);assert(Number(doc.body.style.zoom)>1);
+  const input=doc.createElement('textarea');doc.body.append(input);const edit=new w.KeyboardEvent('keydown',{key:'+',ctrlKey:true,bubbles:true,cancelable:true});input.dispatchEvent(edit);assert(!edit.defaultPrevented);
+  for(let i=0;i<30;i++)act('in');assert.equal(doc.body.style.zoom,'3');assert(doc.querySelector('[data-scale-action="in"]').disabled);
+  for(let i=0;i<30;i++)act('out');assert.equal(doc.body.style.zoom,'0.5');assert(doc.querySelector('[data-scale-action="out"]').disabled);
+  trigger.click();doc.body.click();assert(panel.hidden);
+  const restored=setup(html,1.5);assert.equal(restored.doc.body.style.zoom,'1.5');assert(restored.doc.querySelector('.page-zoom-panel').hidden);
+  const noStorage=setup(html,null,true);noStorage.doc.querySelector('[data-scale-action="in"]').click();assert.equal(noStorage.doc.body.style.zoom,'1.1');
+ }
+ const anchored=setup(cases[2]);anchored.w.scrollTo(0,500);
+ const code=anchored.doc.querySelector('pre');anchored.doc.elementFromPoint=()=>code;
+ code.getBoundingClientRect=()=>({top:600*(Number(anchored.doc.body.style.zoom)||1)-anchored.w.scrollY});
+ anchored.doc.querySelector('[data-scale-action="in"]').click();assert(Math.abs(anchored.w.scrollY-590)<.01,'maintains the content point at viewport center');
+ const flat=setup(cases[2]);const style=flat.w.getComputedStyle(flat.doc.querySelector('pre'));assert.equal(style.backgroundColor,'rgba(0, 0, 0, 0)');assert.equal(parseFloat(style.borderRadius),0);assert.equal(style.boxShadow,'none');
+ console.log(JSON.stringify({passed:['code colors preserve source text','Markdown code highlighting and escaping','code block has no background, border or shadow','whole-page scale on index and readers','quiet percentage and dismissible controls','keyboard shortcuts, reset and bounds','modifier-wheel scale, ordinary wheel unchanged','editable fields preserved','scale restoration and blocked storage fallback','viewport content anchor retained','no image-only viewer'],scope:'DOM simulation; real-browser layout and gesture testing not performed'},null,2));
 }finally{doms.forEach(d=>d.window.close());}

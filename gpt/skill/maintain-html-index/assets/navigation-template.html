@@ -31,6 +31,7 @@
   </style>
 <style id="index-controls-style">.index-actions{display:flex;flex-shrink:0}.index-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:9px}.index-heading h1{margin:0;flex:1;min-width:0}.tree-toggle{display:grid;place-items:center;width:40px;height:40px;padding:8px;color:var(--muted);background:none;border:0;border-radius:0;box-shadow:none;cursor:pointer}.tree-toggle:hover{color:var(--link)}.tree-toggle:focus-visible{outline:2px solid var(--link);outline-offset:3px}.tree-toggle:disabled{opacity:.35;cursor:default}.tree-toggle[data-action="expand"] .collapse-icon,.tree-toggle[data-action="collapse"] .expand-icon{display:none}</style>
 <style id="scrollbar-style">{{SCROLLBAR_STYLE}}</style>
+<style id="page-zoom-style">{{PAGE_ZOOM_STYLE}}</style>
 </head>
 <body>
   <main>
@@ -43,6 +44,7 @@
 
     <ul class="tree" aria-label="资料目录">{{TREE}}</ul>
   </main>
+<script id="page-zoom-script" src="{{PAGE_ZOOM_SCRIPT}}"></script>
 <!-- codex-index-state:start -->
 <script>
 // Remember each index independently; keys follow heading ancestry, not list position.
