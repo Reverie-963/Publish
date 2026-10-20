@@ -37,7 +37,11 @@ def page(title,body,out,root,index):
  start=body.find('<button class="toc-toggle"')
  if start>=0:
   end=body.index('</aside>',start)+len('</aside>');toc,body=body[start:end],body[:start]+body[end:]
- return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article><a class="return-index" href="'+rel(out,index)+'">返回总索引</a>'+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script></body></html>'
+ match=re.match(r'\s*(<h1\b[^>]*>.*?</h1>)',body,re.S)
+ heading=match.group(1) if match else '<h1>'+ESC(title)+'</h1>'
+ if match:body=body[match.end():]
+ header='<header class="reader-heading">'+heading+'<a class="return-index" href="'+rel(out,index)+'">返回总索引</a></header>'
+ return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
