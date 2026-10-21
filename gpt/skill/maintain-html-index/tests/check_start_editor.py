@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory(prefix='index-new-folder-') as directory:
   return json.loads(result.stdout)
  info=launch()
  try:
-  assert info['editor_version']==3 and launch()['pid']==info['pid']
+  assert info['editor_version']==4 and launch()['pid']==info['pid']
   base=info['url'].rsplit('/',1)[0]
   manifest=json.loads((root/'.file-index/manifest.json').read_text())
   for record in manifest['files']:

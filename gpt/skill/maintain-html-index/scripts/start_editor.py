@@ -14,7 +14,7 @@ if ready.exists():
   if previous.get('root')==str(root):
    with urllib.request.urlopen(previous['url'].rsplit('/',1)[0]+'/_sync',timeout=2) as response:
     state=json.loads(response.read())
-    if state.get('protocol')==2 and state.get('editor_version')==3 and state.get('root')==str(root) and state.get('state')!='disabled':print(json.dumps(previous,ensure_ascii=False));raise SystemExit(0)
+    if state.get('protocol')==2 and state.get('editor_version')==4 and state.get('root')==str(root) and state.get('state')!='disabled':print(json.dumps(previous,ensure_ascii=False));raise SystemExit(0)
  except (OSError,ValueError,KeyError):pass
  # Keep older sessions alive so open editors and unsaved drafts are not interrupted.
  ready.unlink(missing_ok=True)

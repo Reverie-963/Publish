@@ -7,7 +7,7 @@ from edit_documents import sha, word_package, word_model, patch_word, markdown_m
 from build_folder_index import SKILL, page, rel, TEXT
 
 EDIT_TEXT=TEXT|{'.csv','.tsv','.html','.htm','.markdown','.jsx','.tsx','.rs','.go','.java','.sql','.r','.ipynb'}
-NATIVE={'.doc','.docx','.odt','.rtf','.xls','.xlsx','.ods','.ppt','.pptx','.odp','.pdf','.png','.jpg','.jpeg','.gif','.webp','.tif','.tiff','.bmp','.heic','.mp3','.wav','.m4a','.mp4','.mov'}
+NATIVE={'.md','.markdown','.doc','.docx','.odt','.rtf','.xls','.xlsx','.ods','.ppt','.pptx','.odp','.pdf','.png','.jpg','.jpeg','.gif','.webp','.tif','.tiff','.bmp','.heic','.mp3','.wav','.m4a','.mp4','.mov'}
 
 def highlighted(text,name):
  result=subprocess.run(['node',str(SKILL/'scripts/highlight_code.cjs')],input=json.dumps({'code':text,'filename':name}),capture_output=True,text=True,timeout=30)
@@ -138,7 +138,7 @@ def make_server(root,port=0,watch=False,interval=2,settle=2):
    if not route.startswith(editor.prefix+'/'):return self.send(404,'{}')
    name=urllib.parse.unquote(route[len(editor.prefix)+1:]);candidate=editor.root/name
    if name=='_sync':
-    return self.send(200,json.dumps({'protocol':2,'editor_version':3,'root':str(editor.root),**(editor.sync.status() if editor.sync else {'state':'disabled','version':0})}))
+    return self.send(200,json.dumps({'protocol':2,'editor_version':4,'root':str(editor.root),**(editor.sync.status() if editor.sync else {'state':'disabled','version':0})}))
    if not candidate.resolve().is_relative_to(editor.root) or any(part in {'history','editor-private','.git'} for part in Path(name).parts):return self.send(403,'{}')
    if candidate.is_symlink():return self.send(403,'{}')
    try:
@@ -185,7 +185,7 @@ def make_server(root,port=0,watch=False,interval=2,settle=2):
 if __name__=='__main__':
  parser=argparse.ArgumentParser();parser.add_argument('root',type=Path);parser.add_argument('--port',type=int,default=0);parser.add_argument('--ready-file',type=Path);args=parser.parse_args()
  server=make_server(args.root,args.port,watch=True);url='http://127.0.0.1:'+str(server.server_port)+server.editor.prefix+'/'+urllib.parse.quote(server.editor.manifest['entry'])
- info={'url':url,'pid':os.getpid(),'root':str(args.root.resolve()),'protocol':2,'editor_version':3,'sync':True}
+ info={'url':url,'pid':os.getpid(),'root':str(args.root.resolve()),'protocol':2,'editor_version':4,'sync':True}
  if args.ready_file:args.ready_file.write_text(json.dumps(info,ensure_ascii=False))
  print(json.dumps(info,ensure_ascii=False),flush=True)
  server.serve_forever()

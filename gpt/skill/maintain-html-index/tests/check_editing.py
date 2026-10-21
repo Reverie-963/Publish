@@ -83,6 +83,8 @@ try:
  with patch('serve_editor.subprocess.run',return_value=SimpleNamespace(returncode=0)) as launch:
   assert request('/_open',{'id':'1'})[0]==200
   assert launch.call_args.args[0]==['/usr/bin/open',str((root/'word.docx').resolve())]
+  launch.reset_mock();assert request('/_open',{'id':'0'})[0]==200
+  assert launch.call_args.args[0]==['/usr/bin/open',str(md.resolve())]
   launch.reset_mock();assert request('/_open',{'id':'4'})[0]==409;launch.assert_not_called()
   assert request('/_open',{'id':'1'},{'Origin':'https://untrusted.invalid'})[0]==403
  # Existing source links receive native integration without another UI button.

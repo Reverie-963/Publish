@@ -1,6 +1,6 @@
 const {JSDOM}=require('jsdom'),fs=require('fs'),path=require('path'),assert=require('assert');
 (async()=>{
- const source='/token/'+encodeURIComponent('文件 #1.docx'),config={id:'one',source,endpoint:'/token/_open',writeKey:'secret'};
+ const source='/token/'+encodeURIComponent('文件 #1.md'),config={id:'one',source,endpoint:'/token/_open',writeKey:'secret'};
  const d=new JSDOM('<a href="'+source+'" target="_blank">打开原件</a><script id="native-config" type="application/json">'+JSON.stringify(config)+'</script>',{url:'http://127.0.0.1:1234/token/preview.html',runScripts:'outside-only'});
  let saved=false,calls=[];
  d.window.fileIndexFinishEditing=async()=>saved;
