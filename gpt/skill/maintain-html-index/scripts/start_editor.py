@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start/reuse an explicitly requested local editor without changing the offline index."""
+"""Start/reuse a local editor with automatic source/index synchronization."""
 import argparse,json,os,subprocess,sys,time,urllib.request
 from pathlib import Path
 parser=argparse.ArgumentParser();parser.add_argument('root',type=Path);args=parser.parse_args();root=args.root.resolve()
@@ -8,9 +8,11 @@ if ready.exists():
  try:
   previous=json.loads(ready.read_text())
   if previous.get('root')==str(root):
-   with urllib.request.urlopen(previous['url'],timeout=2) as response:
-    if response.status==200:print(json.dumps(previous,ensure_ascii=False));raise SystemExit(0)
+   with urllib.request.urlopen(previous['url'].rsplit('/',1)[0]+'/_sync',timeout=2) as response:
+    state=json.loads(response.read())
+    if state.get('protocol')==2 and state.get('root')==str(root) and state.get('state')!='disabled':print(json.dumps(previous,ensure_ascii=False));raise SystemExit(0)
  except (OSError,ValueError,KeyError):pass
+ # Keep older sessions alive so open editors and unsaved drafts are not interrupted.
  ready.unlink(missing_ok=True)
 env=os.environ.copy()
 # Prefer the bundled converter when running in the Codex desktop runtime.

@@ -194,7 +194,7 @@ def render(src,out,args,mapping):
  return title+''.join(notice(x) for x in notes)+body,notes,status
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('root',type=Path);p.add_argument('--name',default='00 - 文件索引.html');p.add_argument('--title');p.add_argument('--exclude',action='append',default=[]);p.add_argument('--include-originals',action='store_true');p.add_argument('--links',type=Path);p.add_argument('--max-pages',type=int,default=200);p.add_argument('--max-cells',type=int,default=200000);p.add_argument('--max-text-bytes',type=int,default=2_000_000);args=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('root',type=Path);p.add_argument('--name',default='00 - 文件索引.html');p.add_argument('--title');p.add_argument('--exclude',action='append',default=[]);p.add_argument('--include-originals',action='store_true');p.add_argument('--force',action='store_true');p.add_argument('--links',type=Path);p.add_argument('--max-pages',type=int,default=200);p.add_argument('--max-cells',type=int,default=200000);p.add_argument('--max-text-bytes',type=int,default=2_000_000);args=p.parse_args()
  root=args.root.resolve();index=root/args.name
  if not root.is_dir():p.error('root must be an existing directory')
  if min(args.max_pages,args.max_cells,args.max_text_bytes)<1:p.error('preview limits must be positive')
@@ -219,7 +219,7 @@ def main():
   if Path(directory)!=root:directories.append(Path(directory).relative_to(root).as_posix())
   for name in sorted(files,key=natural):
    f=Path(directory)/name
-   if f.is_symlink() or name.startswith('.') or f==index:continue
+   if f.is_symlink() or name.startswith(('.', '~$')) or f==index or f.name==args.name+'.tmp':continue
    if not args.include_originals and name.endswith(('.original.md','.original.html')):continue
    if f.suffix=='.html' and f.with_suffix('.md').exists() and '<!-- codex-md-reader v1 -->' in f.read_text(errors='replace')[:250]:continue
    if name=='index.html' and ('codex-index-state:start' in f.read_text(errors='replace') or MARKER in f.read_text(errors='replace')):continue
@@ -231,7 +231,7 @@ def main():
  records=[];reused=0
  for src in sources:
   sourcepath=src.relative_to(root).as_posix();out=Path(mapping[str(src)]);out.parent.mkdir(parents=True,exist_ok=True);sha=digest(src);oldrec=previous.get(sourcepath)
-  if old.get('version')==version and oldrec and oldrec['sha256']==sha and out.exists() and oldrec['status']!='error' and (src.suffix.lower()!='.md' or oldrec.get('links_hash')==links_hash):
+  if not args.force and old.get('version')==version and oldrec and oldrec['sha256']==sha and out.exists() and oldrec['status']!='error' and (src.suffix.lower()!='.md' or oldrec.get('links_hash')==links_hash):
    rec=oldrec;reused+=1
   else:
    try:body,notes,status=render(src,out,args,mapping)
@@ -289,7 +289,22 @@ def main():
  legacy=root/'index.html'
  if legacy!=index and legacy.exists() and ('codex-index-state:start' in legacy.read_text(errors='replace') or MARKER in legacy.read_text(errors='replace')):
   write(legacy,'<!doctype html>'+MARKER+'<meta charset="utf-8"><meta http-equiv="refresh" content="0;url='+ESC(quote(args.name),quote=True)+'"><a href="'+quote(args.name)+'">打开文件索引</a>')
- write(manifest,json.dumps({'generator':'codex-folder-index-v2','version':version,'entry':args.name,'files':records,'directories':directory_records},ensure_ascii=False,indent=2))
+ options={key:getattr(args,key) for key in ['name','title','exclude','include_originals','max_pages','max_cells','max_text_bytes']}
+ options['links']=os.path.relpath(args.links.resolve(),root) if args.links else None
+ write(manifest,json.dumps({'generator':'codex-folder-index-v2','version':version,'entry':args.name,'build_options':options,'files':records,'directories':directory_records},ensure_ascii=False,indent=2))
+ # Remove only retired generated folders explicitly owned by the previous manifest.
+ keep={x['id'] for x in records}
+ for record in old.get('files',[]):
+  id=record.get('id','')
+  if id not in keep and re.fullmatch(r'(?:[0-9a-f]{16}|link-[0-9]+)',id):
+   retired=work/'previews'/id
+   if retired.is_dir() and not retired.is_symlink():shutil.rmtree(retired)
+ keep_dirs={x['preview'] for x in directory_records}
+ for record in old.get('directories',[]):
+  previous=record['preview']
+  if previous not in keep_dirs:
+   retired=root/unquote(previous);folder=retired.parent
+   if folder.parent==work/'folders' and re.fullmatch(r'[0-9a-f]{16}',folder.name) and folder.is_dir() and not folder.is_symlink():shutil.rmtree(folder)
  print(json.dumps({'entry':str(index),'files':len(records),'reused':reused,'errors':[{'path':x['path'],'notes':x['notes']} for x in records if x['status']=='error'],'unsupported':[x['path'] for x in records if x['status']=='unsupported']},ensure_ascii=False,indent=2))
 
 if __name__=='__main__':main()

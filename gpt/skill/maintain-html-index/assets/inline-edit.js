@@ -5,6 +5,7 @@
  document.querySelector('.return-index').after(status);
  const key='file-index:draft:'+config.workspace+':'+config.id;
  let active=null,timer=null,saving=null,closing=null,failed=false,composing=false;
+ window.fileIndexEditingBusy=()=>Boolean(active||saving||closing||failed||composing);
  const norm=text=>text.replace(/\r\n/g,'\n');
  const textOf=node=>norm(node.innerText===undefined?node.textContent:node.innerText);
  function message(text,error=false){status.textContent=text;status.dataset.error=String(error);}

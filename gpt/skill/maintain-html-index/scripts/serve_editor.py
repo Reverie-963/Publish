@@ -8,10 +8,29 @@ from build_folder_index import SKILL, page, rel
 
 class Editor:
  def __init__(self,root):
-  self.root=root.resolve();self.manifest=json.loads((root/'.file-index/manifest.json').read_text());self.lock=threading.Lock();self.cache={}
+  self.root=root.resolve();self.manifest=json.loads((root/'.file-index/manifest.json').read_text());self.lock=threading.RLock();self.cache={};self.sync=None
   self.records={r['id']:r for r in self.manifest['files'] if not r.get('external')}
   self.mapping={str(self.root/r['path']):str(self.root/urllib.parse.unquote(r['preview'])) for r in self.records.values()}
   self.prefix='/'+secrets.token_urlsafe(24);self.write_key=secrets.token_urlsafe(32)
+  self.manifest_stamp=(self.root/'.file-index/manifest.json').stat().st_mtime_ns
+ def refresh(self):
+  path=self.root/'.file-index/manifest.json';stamp=path.stat().st_mtime_ns
+  if stamp==self.manifest_stamp:return
+  data=json.loads(path.read_text())
+  with self.lock:
+   self.manifest=data;self.records={r['id']:r for r in data['files'] if not r.get('external')}
+   self.mapping={str(self.root/r['path']):str(self.root/urllib.parse.unquote(r['preview'])) for r in self.records.values()}
+   self.cache={};self.manifest_stamp=stamp
+ def with_sync(self,html):
+  if not self.sync:return html
+  config={'version':self.sync.status()['version'],'endpoint':self.prefix+'/_sync'}
+  tag='<script id="sync-config" type="application/json">'+json.dumps(config)+'</script><script>'+(SKILL/'assets/auto-sync.js').read_text()+'</script>'
+  return html.replace('</body>',tag+'</body>')
+ def gone(self,name):
+  # Retired previews must not keep displaying deleted documents from old caches.
+  link=self.prefix+'/'+urllib.parse.quote(self.manifest['entry'])
+  html='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>文件已移除</title><body style="background:#fafafa;color:#626974;font:16px/1.8 system-ui;margin:48px"><p>文件已删除或移动。</p><a style="color:#7c3aed" href="'+link+'">返回文件索引</a></body></html>'
+  return self.with_sync(html)
  def source(self,id):
   r=self.records[id];p=self.root/r['path']
   if p.is_symlink() or not p.resolve().is_relative_to(self.root):raise ValueError('文件路径不可用')
@@ -71,7 +90,7 @@ class Editor:
    result['revision']=revision
    return result
 
-def make_server(root,port=0):
+def make_server(root,port=0,watch=False,interval=2,settle=2):
  editor=Editor(root)
  class Handler(BaseHTTPRequestHandler):
   def send(self,status,body,ctype='application/json; charset=utf-8',sandbox=False):
@@ -84,18 +103,27 @@ def make_server(root,port=0):
    route=urllib.parse.urlsplit(self.path).path
    if not route.startswith(editor.prefix+'/'):return self.send(404,'{}')
    name=urllib.parse.unquote(route[len(editor.prefix)+1:]);candidate=editor.root/name
+   if name=='_sync':
+    return self.send(200,json.dumps({'protocol':2,'root':str(editor.root),**(editor.sync.status() if editor.sync else {'state':'disabled','version':0})}))
    if not candidate.resolve().is_relative_to(editor.root) or any(part in {'history','editor-private','.git'} for part in Path(name).parts):return self.send(403,'{}')
    if candidate.is_symlink():return self.send(403,'{}')
    try:
+    editor.refresh()
+    parts=Path(name).parts
+    if len(parts)>=3 and parts[:2]==('.file-index','previews'):
+     record=next((r for r in editor.manifest['files'] if r['id']==parts[2]),None)
+     if record is None or (not record.get('external') and not (editor.root/record['path']).is_file()):return self.send(410,editor.gone(name),'text/html; charset=utf-8')
+    if len(parts)>=3 and parts[:2]==('.file-index','folders') and not any(urllib.parse.unquote(r['preview'])==name for r in editor.manifest.get('directories',[])):return self.send(410,editor.gone(name),'text/html; charset=utf-8')
     for id,r in editor.records.items():
      if name==urllib.parse.unquote(r['preview']) and Path(r['path']).suffix.lower() in {'.md','.docx','.doc'} and r['status']!='error':
-      return self.send(200,editor.document(id),'text/html; charset=utf-8')
+      return self.send(200,editor.with_sync(editor.document(id)),'text/html; charset=utf-8')
     if not candidate.is_file():return self.send(404,'{}')
     # Only generated navigation/reader pages may run scripts. Source HTML/SVG and
     # extracted HTML remain sandboxed even if opened outside their usual iframe.
     trusted={editor.manifest['entry'],*[urllib.parse.unquote(r['preview']) for r in editor.records.values()],*[urllib.parse.unquote(r['preview']) for r in editor.manifest.get('directories',[])]}
     mime=mimetypes.guess_type(name)[0] or 'application/octet-stream'
-    return self.send(200,candidate.read_bytes(),mime,sandbox=mime in {'text/html','image/svg+xml'} and name not in trusted)
+    body=editor.with_sync(candidate.read_text()) if mime=='text/html' and name in trusted else candidate.read_bytes()
+    return self.send(200,body,mime,sandbox=mime in {'text/html','image/svg+xml'} and name not in trusted)
    except Exception as e:return self.send(409,'<!doctype html><meta charset="utf-8"><p>'+__import__('html').escape(str(e))+'</p>','text/html; charset=utf-8',True)
   def do_POST(self):
    origin='http://127.0.0.1:'+str(self.server.server_port)
@@ -103,15 +131,24 @@ def make_server(root,port=0):
    try:
     size=int(self.headers.get('Content-Length','0'))
     if not 0<size<=4_000_000:return self.send(413,'{}')
-    result=editor.save(json.loads(self.rfile.read(size)));self.send(200,json.dumps(result,ensure_ascii=False))
+    editor.refresh();result=editor.save(json.loads(self.rfile.read(size)));self.send(200,json.dumps(result,ensure_ascii=False))
    except Exception as e:self.send(409,json.dumps({'error':str(e)},ensure_ascii=False))
   def log_message(self,*args):pass
- server=ThreadingHTTPServer(('127.0.0.1',port),Handler);server.editor=editor;return server
+ class Server(ThreadingHTTPServer):
+  def server_close(self):
+   if editor.sync:editor.sync.close()
+   super().server_close()
+ server=Server(('127.0.0.1',port),Handler);server.editor=editor
+ if watch:
+  from watch_folder import FolderSync
+  try:editor.sync=FolderSync(root,editor.refresh,interval,settle).start()
+  except Exception:server.server_close();raise
+ return server
 
 if __name__=='__main__':
  parser=argparse.ArgumentParser();parser.add_argument('root',type=Path);parser.add_argument('--port',type=int,default=0);parser.add_argument('--ready-file',type=Path);args=parser.parse_args()
- server=make_server(args.root,args.port);url='http://127.0.0.1:'+str(server.server_port)+server.editor.prefix+'/'+urllib.parse.quote(server.editor.manifest['entry'])
- info={'url':url,'pid':os.getpid(),'root':str(args.root.resolve())}
+ server=make_server(args.root,args.port,watch=True);url='http://127.0.0.1:'+str(server.server_port)+server.editor.prefix+'/'+urllib.parse.quote(server.editor.manifest['entry'])
+ info={'url':url,'pid':os.getpid(),'root':str(args.root.resolve()),'protocol':2,'sync':True}
  if args.ready_file:args.ready_file.write_text(json.dumps(info,ensure_ascii=False))
  print(json.dumps(info,ensure_ascii=False),flush=True)
  server.serve_forever()
