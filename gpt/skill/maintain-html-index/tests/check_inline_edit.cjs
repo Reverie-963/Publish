@@ -25,5 +25,15 @@ async function input(d,node,text){node.textContent=text;node.dispatchEvent(new d
  const e=new f.d.window.Event('beforeunload',{cancelable:true});f.d.window.dispatchEvent(e);assert(e.defaultPrevented);f.d.window.close();
  // CRLF metadata does not cause an endless autosave loop after normal browser input.
  const c=open();const cn=c.d.window.document.querySelector('[data-edit-block=a]');cn.click();await tick();await input(c.d,cn,'Line 1\nLine 2');await new Promise(r=>setTimeout(r,80));assert.equal(c.calls.length,1);c.d.window.close();
+ // Type again while a request is in flight, then immediately switch blocks.
+ const race=open(),rd=race.d.window.document,ra=rd.querySelector('[data-edit-block=a]'),rb=rd.querySelector('[data-edit-block=b]');
+ ra.click();await tick();ra.textContent='First change';ra.dispatchEvent(new race.d.window.Event('input',{bubbles:true}));
+ rd.dispatchEvent(new race.d.window.KeyboardEvent('keydown',{key:'s',ctrlKey:true,bubbles:true,cancelable:true}));
+ ra.textContent='Latest while saving';ra.dispatchEvent(new race.d.window.Event('input',{bubbles:true}));rb.focus();rb.click();
+ await new Promise(r=>setTimeout(r,150));assert.equal(race.calls.length,2);assert.equal(race.calls.at(-1).text,'Latest while saving');assert.equal(ra.textContent,'Latest while saving');assert.equal(rb.getAttribute('contenteditable'),'plaintext-only');race.d.window.close();
+ // A lost response retries the same operation before saving subsequent input.
+ const lost=open('text'),ld=lost.d.window.document,ln=ld.querySelector('[data-edit-block=a]');let attempts=[];
+ lost.d.window.fetch=async(url,options)=>{const q=JSON.parse(options.body);attempts.push(q);await tick();if(attempts.length===1)throw Error('connection lost');return {ok:true,json:async()=>({revision:'r1',text:q.text,delta:q.text.length-q.old.length,end:q.start+q.text.length,fragment:'<pre>'+q.text+'</pre>'})};};
+ ln.click();await tick();await input(lost.d,ln,'Saved source');await input(lost.d,ln,'Saved source');assert.equal(attempts.length,2);assert.deepEqual(attempts[0],attempts[1]);assert.equal(ld.querySelector('.edit-status').textContent,'已保存');lost.d.window.close();
  console.log('PASS: button-free direct editing, source-based autosave, one-click paragraph switching, offset updates, Escape, failure/draft retention and unload protection (DOM simulation)');
 })().catch(e=>{console.error(e);process.exitCode=1;});

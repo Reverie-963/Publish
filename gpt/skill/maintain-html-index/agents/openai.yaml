@@ -1,4 +1,4 @@
 interface:
   display_name: "文件索引与预览"
-  short_description: "把文件夹制作成简洁折叠目录，点击进入独立 HTML 阅读页，支持多种文件格式"
-  default_prompt: "使用 $maintain-html-index 为指定文件夹生成 HTML 浏览与预览入口，保留原件，不额外撰写报告。"
+  short_description: "为本地文件夹生成简洁目录和预览，默认连接源文件编辑、保存与自动同步"
+  default_prompt: "使用 $maintain-html-index 为指定文件夹生成可编辑、自动同步的本机浏览入口，并保留离线 HTML 预览，不额外撰写报告。"

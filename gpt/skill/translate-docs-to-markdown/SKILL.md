@@ -66,6 +66,6 @@ Missing assets or too few images fail delivery. Formula syntax checks do not pro
 
 ## 4. Render and deliver
 
-Pass the root, affected manuscripts, source mapping, verified online links and established order to `maintain-html-index`. It synchronizes HTML and any required existing navigation; final links should open real reading pages. Do not reproduce its visual or interaction rules in this skill.
+Pass the root, affected manuscripts, source mapping, verified online links and established order to `maintain-html-index`. It synchronizes HTML and any required existing navigation; final links should use its live local reader with editing/sync by default, with offline HTML as fallback. Do not reproduce its visual or interaction rules in this skill.
 
 Use [task-work-report](../task-work-report/SKILL.md) only when the task calls for a work report; its trigger, content and update policy are maintained there. Translation and indexing do not themselves require a report.
