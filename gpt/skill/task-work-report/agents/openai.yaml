@@ -1,4 +1,4 @@
 interface:
   display_name: "任务工作报告"
-  short_description: "简洁说明已完成的工作与需要用户审核确认的事项，避免语义重复"
-  default_prompt: "使用 $task-work-report 为本次任务写一份简洁报告，只保留已完成和需要我审核、确认两部分。"
+  short_description: "按当前内容组织简练的 README 风格报告，去除语义重复，醒目置顶待确认事项"
+  default_prompt: "使用 $task-work-report 更新当前任务报告，采用简洁的 README 风格，避免语义重复，并将需要我决定的事项醒目置顶。"

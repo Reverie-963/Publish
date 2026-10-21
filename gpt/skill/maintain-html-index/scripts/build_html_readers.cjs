@@ -29,7 +29,7 @@ fs.copyFileSync(path.join(packageRoot,'LICENSE'),path.join(asset,'KaTeX-LICENSE.
 for(const name of ['reader.css','reader.js','page-zoom.js'])fs.copyFileSync(path.join(__dirname,'..','assets',name),path.join(asset,name));
 const parsed=new Map();
 let activeFile='',mathCount=0;
-const md=new MarkdownIt({html:false,linkify:false,typographer:false,highlight:require('./highlight_code.cjs').highlight}).use(texmath,{engine:katex,delimiters:['dollars','brackets']});
+const md=new MarkdownIt({html:false,linkify:false,typographer:false,highlight:require('./highlight_code.cjs').highlight}).use(texmath,{engine:katex,delimiters:['dollars','brackets']}).use(require('./important_blocks.cjs'));
 for(const kind of ['math_inline','math_inline_double','math_block','math_block_eqno'])md.renderer.rules[kind]=(tokens,i)=>{
  const t=tokens[i],display=kind!=='math_inline';mathCount++;
  try {const str=katex.renderToString(t.content,{displayMode:display,throwOnError:true,trust:false,strict:'ignore',output:'htmlAndMathml'});return display?'<div class="math-display">'+str+(kind==='math_block_eqno'?'<span class="eqno">('+esc(t.info)+')</span>':'')+'</div>':str;}

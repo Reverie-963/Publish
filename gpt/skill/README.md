@@ -5,7 +5,7 @@
 | 技能 | 用途 |
 |---|---|
 | [maintain-html-index](maintain-html-index/SKILL.md) | 简洁折叠文件树、独立 HTML 阅读页与多格式预览 |
-| [task-work-report](task-work-report/SKILL.md) | 简洁说明已完成工作与待用户审核确认事项 |
+| [task-work-report](task-work-report/SKILL.md) | README 风格的简练报告，去重并醒目置顶待确认事项 |
 | [translate-docs-to-markdown](translate-docs-to-markdown/SKILL.md) | 文档中文 Markdown 翻译与 HTML 阅读交付 |
 | [moodle-course-archive](moodle-course-archive/SKILL.md) | Moodle 课程归档、增量补齐与条目对应 |
 | [video-to-bilingual-markdown](video-to-bilingual-markdown/SKILL.md) | 带时间戳和截图的双语视频文稿 |
@@ -34,7 +34,7 @@ npm ci --ignore-scripts --no-audit --no-fund
 
 `maintain-html-index` 只扫描已有文件并生成预览，默认入口为 `00 - 文件索引.html`，配套内容集中在 `.file-index/`。索引为居中单栏文件树，文件夹名可进入子目录，箭头控制折叠；点击直接进入与目录同风格的平面阅读页，不套纸张卡片，文章目录通过低调的细线图标展开、收起；展开后停留在正文侧边，跳转章节时保持打开，并标出当前阅读位置，不使用左目录右预览布局。左侧工具区的单个无边框图标在有任何展开目录时收起全部，完全收起时才展开全部。Word、ODT、RTF、PPT、PDF、XLS、ODS 提供逐页版式预览，XLSX 提供工作表视图，其他类型见 [支持范围](maintain-html-index/references/file-previews.md)。索引与阅读页支持整页缩放，索引与文档的导航、缩放控件统一在左侧横向排列；竖屏工具栏贴顶，背景覆盖两侧留白；单击比例即可恢复 100%，小箭头展开调整，同一文件夹沿用比例；代码（含 MATLAB `.m`）使用离线语法配色且无底色边框，滚动条保持细浅色。Python 依赖见 `requirements.txt`；Office/PDF 版面转换需要 LibreOffice 和 Poppler。
 
-`task-work-report` 按任务量和用户要求启用，只写“已完成”和“需要你审核、确认”。索引不会自动创建报告；报告已存在时才按普通文件生成预览。同一任务的后续修改更新原报告，整理为当前状态；独立任务或正式留档才新建。文章审核工具 `report-review-html` 保持独立用途。
+`task-work-report` 按任务量和用户要求启用，按实际内容组织 README 风格报告，不设固定两段；避免语义重复，待确认的额外操作与影响决策的不确定事项醒目置顶。索引不会自动创建报告；报告已存在时才按普通文件生成预览。同一任务的后续修改更新原报告，整理为当前状态；独立任务或正式留档才新建。文章审核工具 `report-review-html` 保持独立用途。
 
 本地课程成果不随技能更新自动迁移。原 Markdown 阅读页脚本保留兼容入口。
 
