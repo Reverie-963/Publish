@@ -15,7 +15,7 @@
    [left,right].forEach((f,i)=>{selects[i].value=f.id;for(const option of selects[i].options)option.disabled=option.value===(i?left:right).id;const url=urlFor(f);url.searchParams.set('compare-pane','1');if(frames[i].getAttribute('src')!==url.href)frames[i].src=url.href;frames[i].title=f.label;});back.href=urlFor(left).href;
   }
   selects.forEach(select=>select.addEventListener('change',()=>{location.hash=new URLSearchParams({left:selects[0].value,right:selects[1].value}).toString();}));
-  document.querySelector('.compare-close').addEventListener('click',()=>location.assign(back.href));window.addEventListener('hashchange',load);load();return;
+  window.addEventListener('hashchange',load);load();return;
  }
  const current=files.find(f=>urlFor(f).pathname===location.pathname),host=document.querySelector('.toc-toolbar');
  if(!current||files.length<2||!host)return;
