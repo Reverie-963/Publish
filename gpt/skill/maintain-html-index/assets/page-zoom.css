@@ -32,3 +32,7 @@
 .tools-compact>.reader-sidebar::before,.tools-compact>.index-sidebar::before{inset:-1px calc(-1 * var(--page-gutter) * var(--content-scale,1)) 0}
 .tools-compact :is(h1,h2,h3,h4,h5,h6){scroll-margin-top:calc(64px * var(--ui-scale,1))}
 @media print{.layout>article,.index-layout>main{grid-column:auto}}
+
+/* Start at the sticky edge, so the toolbar never travels before pinning. */
+.layout.has-reader-tools.tools-compact,.layout.has-toc.toc-compact,.index-layout.tools-compact{padding-top:0}
+.tools-compact>article,.toc-compact>article,.index-layout.tools-compact>main{margin-top:18px}

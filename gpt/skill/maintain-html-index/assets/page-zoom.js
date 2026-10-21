@@ -28,7 +28,11 @@
     if(layout){
       layout.classList.toggle('tools-compact',innerWidth/scale<1100);
       const sidebar=layout.querySelector(':scope > .reader-sidebar,:scope > .index-sidebar');
-      if(sidebar)sidebar.style.zoom=String(1/scale);
+      if(sidebar){
+        sidebar.style.zoom=String(1/scale);
+        const compact=layout.classList.contains('tools-compact')||document.body.classList.contains('is-compare-pane');
+        sidebar.style.top=(compact?0:(parseFloat(getComputedStyle(layout).paddingTop)||0)*scale)+'px';
+      }
     }
   }
   fitTools();
