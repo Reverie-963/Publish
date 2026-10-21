@@ -50,11 +50,11 @@
   const ui = document.createElement('div'); ui.className = 'page-zoom';
   ui.innerHTML = '<button type="button" data-scale-action="out" aria-label="缩小页面" title="缩小">−</button><button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" data-scale-action="in" aria-label="放大页面" title="放大">+</button>';
   const floating=host.classList.contains('toc-toolbar');
-  let hideTimer,hovered=false;
-  function hideZoom(){clearTimeout(hideTimer);hovered=false;ui.classList.remove('is-visible');ui.inert=true;ui.setAttribute('aria-hidden','true');}
+  let hideTimer,hovered=false,keyboardInput=true;
+  function hideZoom(){clearTimeout(hideTimer);hovered=false;ui.classList.remove('is-visible');if(ui.contains(document.activeElement))document.activeElement.blur();ui.inert=true;ui.setAttribute('aria-hidden','true');}
   function scheduleHide(){
     clearTimeout(hideTimer);
-    if(!floating||hovered||ui.contains(document.activeElement))return;
+    if(!floating||!ui.classList.contains('is-visible')||hovered||(keyboardInput&&ui.contains(document.activeElement)))return;
     hideTimer=setTimeout(hideZoom,3000);
   }
   function showZoom(){if(!floating)return;ui.classList.add('is-visible');ui.inert=false;ui.removeAttribute('aria-hidden');scheduleHide();}
@@ -62,11 +62,16 @@
     ui.classList.add('page-zoom-floating');ui.setAttribute('role','group');ui.setAttribute('aria-label','页面缩放');
     // Outside the scaled body: the transient controls keep their normal size.
     document.documentElement.append(ui);hideZoom();
-    ui.addEventListener('pointerenter',()=>{hovered=true;clearTimeout(hideTimer);});
+    ui.addEventListener('pointerenter',event=>{if(event.pointerType==='touch')return;hovered=true;clearTimeout(hideTimer);});
     ui.addEventListener('pointerleave',()=>{hovered=false;scheduleHide();});
-    ui.addEventListener('focusin',()=>clearTimeout(hideTimer));
+    ui.addEventListener('focusin',scheduleHide);
+    // Mouse/touch clicks leave focus behind; only keyboard focus pauses hiding.
+    document.addEventListener('pointerdown',event=>{keyboardInput=false;if(event.pointerType==='touch')hovered=false;scheduleHide();},true);
+    document.addEventListener('keydown',event=>{if(event.key==='Tab'||(ui.contains(event.target)&&!event.metaKey&&!event.ctrlKey&&['Enter',' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)))keyboardInput=true;scheduleHide();},true);
     ui.addEventListener('focusout',()=>queueMicrotask(scheduleHide));
     window.addEventListener('pagehide',hideZoom);
+    window.addEventListener('blur',hideZoom);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)hideZoom();});
   }else host.append(ui);
   const reset = ui.querySelector('.page-scale');
   const smaller = ui.querySelector('[data-scale-action="out"]'), larger = ui.querySelector('[data-scale-action="in"]');
