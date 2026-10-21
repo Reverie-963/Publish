@@ -26,7 +26,7 @@
     document.body.style.setProperty('--content-scale',String(scale));
     document.body.style.setProperty('--ui-scale',String(1/scale));
     if(layout){
-      layout.classList.toggle('tools-compact',innerWidth/scale<820);
+      layout.classList.toggle('tools-compact',innerWidth/scale<1100);
       const sidebar=layout.querySelector(':scope > .reader-sidebar,:scope > .index-sidebar');
       if(sidebar)sidebar.style.zoom=String(1/scale);
     }

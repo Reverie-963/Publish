@@ -63,7 +63,7 @@
   function savedOpen(){for(const store of stores){try{const value=store.getItem(storageKey+(compact?':compact':':wide'));if(value==='true'||value==='false')return value==='true';}catch(_){}}return false;}
   function fit(){
     stopMotion();
-    const next=window.innerWidth/zoom()<820,changed=compact!==next;compact=next;
+    const next=window.innerWidth/zoom()<1100,changed=compact!==next;compact=next;
     layout.classList.toggle('toc-compact',compact);
     sidebar.style.zoom=String(1/zoom());
     sidebar.style.top=(compact?0:24)+'px';

@@ -15,7 +15,7 @@ function setup(html,{reduced=false,scale=1,width=1400}={}){
  };
  const rect=(left=0,top=0,height=0)=>({left,top,height,bottom:top+height,right:left+800,width:800});
  w.Element.prototype.getBoundingClientRect=function(){
-  const opened=d.body.classList.contains('toc-open'),compact=w.innerWidth/scale<820;
+  const opened=d.body.classList.contains('toc-open'),compact=w.innerWidth/scale<1100;
   if(this.tagName==='ARTICLE'){
    const delta=this._motion?.frames[0].transform?.match(/translate\(([-.\d]+)px,([-.\d]+)px\)/);
    return rect(300*scale+(delta?Number(delta[1])*scale/2:0),(40+(opened&&compact?140:0))*scale+(delta?Number(delta[2])*scale/2:0));
@@ -31,7 +31,7 @@ function setup(html,{reduced=false,scale=1,width=1400}={}){
 }
 const reader='<div class="layout"><article><h2 id="a">A</h2><h2 id="b">B</h2></article></div><button class="toc-toggle"></button><nav id="outline" class="toc-panel"><a href="#a">A</a><a href="#b">B</a></nav>';
 for(const scale of [1,1.5]){
- const t=setup('<style>'+asset('reader.css')+asset('page-zoom.css')+'</style>'+reader,{scale,width:1600});t.w.eval(asset('reader.js'));
+ const t=setup('<style>'+asset('reader.css')+asset('page-zoom.css')+'</style>'+reader,{scale,width:2000});t.w.eval(asset('reader.js'));
  assert.equal(t.calls.length,0,'restore must not animate');
  const toggle=t.d.querySelector('button'),layout=t.d.querySelector('.layout');layout.classList.add('has-reader-tools');
  const geometry=()=>{const s=t.w.getComputedStyle(layout);return [s.gridTemplateColumns,s.maxWidth,s.gap];};

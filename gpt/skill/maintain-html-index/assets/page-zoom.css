@@ -23,9 +23,12 @@
 @keyframes quiet-menu-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.page-zoom-panel:not([hidden]){animation:none}.page-zoom button,.toc-toggle,.tree-toggle,.toc-panel a{transition:none}}
 
-/* Keep the rail at 100% while the content uses the saved page scale. */
-.layout.has-toc,.layout.has-reader-tools,.index-layout{grid-template-columns:calc(120px * var(--ui-scale,1)) minmax(0,1fr);gap:calc(32px * var(--ui-scale,1));max-width:calc(960px + 152px * var(--ui-scale,1))}
-.layout.has-reader-tools.has-toc,.layout.has-toc{grid-template-columns:calc(210px * var(--ui-scale,1)) minmax(0,1fr);max-width:calc(960px + 242px * var(--ui-scale,1))}
+/* Equal rails center the content itself; the empty right rail balances tools. */
+.layout.has-toc,.layout.has-reader-tools,.index-layout{--rail:120px;grid-template-columns:calc(var(--rail) * var(--ui-scale,1)) minmax(0,1fr) calc(var(--rail) * var(--ui-scale,1));gap:calc(32px * var(--ui-scale,1));max-width:calc(960px + 2 * (var(--rail) + 32px) * var(--ui-scale,1))}
+.layout.has-reader-tools{--rail:160px}.layout.has-reader-tools.has-toc,.layout.has-toc{--rail:210px}
+.layout>article,.index-layout>main{grid-column:2}.layout>.reader-sidebar,.index-layout>.index-sidebar{grid-column:1;grid-row:1}
 .layout.has-toc.toc-compact,.layout.has-reader-tools.has-toc.toc-compact,.layout.has-reader-tools.tools-compact,.index-layout.tools-compact{grid-template-columns:minmax(0,1fr);max-width:960px;gap:calc(8px * var(--ui-scale,1))}
+.toc-compact>article,.tools-compact>article,.tools-compact>main{grid-column:1;grid-row:2}
 .tools-compact>.reader-sidebar::before,.tools-compact>.index-sidebar::before{inset:-1px calc(-1 * var(--page-gutter) * var(--content-scale,1)) 0}
 .tools-compact :is(h1,h2,h3,h4,h5,h6){scroll-margin-top:calc(64px * var(--ui-scale,1))}
+@media print{.layout>article,.index-layout>main{grid-column:auto}}

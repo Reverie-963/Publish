@@ -5,6 +5,7 @@ const records=JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.js
 const stateKey='course-index:v1:https://preview-test.invalid/index.html',doms=[];
 function open(source=html,saved=null,blocked=false){
  const d=new JSDOM(source,{url:'https://preview-test.invalid/index.html',runScripts:'outside-only',pretendToBeVisual:true});doms.push(d);
+ Object.defineProperty(d.window,'innerWidth',{value:1414,configurable:true});
  d.window.scrollTo=(_,y)=>{Object.defineProperty(d.window,'scrollY',{value:y,configurable:true});};
  if(saved)d.window.localStorage.setItem(stateKey,saved);
  if(blocked)for(const key of ['localStorage','sessionStorage'])Object.defineProperty(d.window,key,{get(){throw Error('storage unavailable');}});

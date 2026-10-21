@@ -32,7 +32,7 @@ def command(args,timeout=120):
  return r
 
 def page(title,body,out,root,index):
- css='\n'.join((SKILL/'assets'/name).read_text() for name in ['reader.css','preview.css','code.css','scrollbar.css','page-zoom.css'])
+ css='\n'.join((SKILL/'assets'/name).read_text() for name in ['reader.css','preview.css','code.css','scrollbar.css','page-zoom.css','compare.css'])
  math=rel(out,root/'.file-index/assets/katex/katex.min.css')
  toc=''
  start=body.find('<button class="toc-toggle"')
@@ -42,7 +42,7 @@ def page(title,body,out,root,index):
  heading=match.group(1) if match else '<h1>'+ESC(title)+'</h1>'
  if match:body=body[match.end():]
  header='<header class="reader-heading">'+heading+'<a class="return-index" href="'+rel(out,index)+'">返回总索引</a></header>'
- return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script></body></html>'
+ return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/file-catalog.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/compare.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
@@ -207,7 +207,7 @@ def main():
  work.mkdir(exist_ok=True);assets=work/'assets';assets.mkdir(exist_ok=True)
  # Claim only a new directory before generation, so an interrupted run is recoverable.
  if not manifest.exists():write(manifest,json.dumps({'generator':'codex-folder-index-v2','files':[]}))
- for name in ['reader.js','page-zoom.js']:write(assets/name,(SKILL/'assets'/name).read_text())
+ for name in ['reader.js','page-zoom.js','compare.js','compare.css']:write(assets/name,(SKILL/'assets'/name).read_text())
  katex=SKILL/'node_modules/katex/dist'
  if katex.is_dir():
   (assets/'katex').mkdir(exist_ok=True);shutil.copy2(katex/'katex.min.css',assets/'katex/katex.min.css');shutil.copytree(katex/'fonts',assets/'katex/fonts',dirs_exist_ok=True)
@@ -226,7 +226,7 @@ def main():
    sources.append(f)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
  for directory in directories:mapping[str(root/directory)]=str(work/'folders'/hashlib.sha256(directory.encode()).hexdigest()[:16]/'index.html')
- version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/important_blocks.cjs','scripts/highlight_code.cjs','scripts/html_outline.py','package-lock.json','assets/reader.css','assets/preview.css','assets/code.css','assets/scrollbar.css','assets/page-zoom.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
+ version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/important_blocks.cjs','scripts/highlight_code.cjs','scripts/html_outline.py','package-lock.json','assets/reader.css','assets/preview.css','assets/code.css','assets/scrollbar.css','assets/page-zoom.css','assets/compare.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
  links_hash=hashlib.sha256(json.dumps(sorted([str(f.relative_to(root)) for f in sources]+directories)).encode()).hexdigest()
  records=[];reused=0
  for src in sources:
@@ -248,6 +248,10 @@ def main():
    content='<h1>'+ESC(item['label'])+'</h1>'+notice('这是在线入口，没有生成离线正文。')+'<p><a href="'+ESC(item['url'],quote=True)+'" target="_blank" rel="noopener">打开在线页面</a></p>'
    write(out,page(item['label'],content,out,root,index))
    records.append({'id':'link-'+str(i),'path':item.get('folder','在线入口')+'/'+item['label'],'label':item['label'],'type':'链接','source':item['url'],'preview':rel(index,out),'status':'external','external':True,'notes':[]})
+ # A script catalog works on file:// without fetch or cross-frame DOM access.
+ catalog=[{'id':r['id'],'label':r['path'],'preview':r['preview']} for r in records if not r.get('external')]
+ write(assets/'file-catalog.js','window.FILE_INDEX_CATALOG='+json.dumps(catalog,ensure_ascii=False).replace('<','\\u003c')+';')
+ write(work/'compare.html',(SKILL/'assets/compare-template.html').read_text().replace('{{INDEX}}',ESC(rel(work/'compare.html',index),quote=True)))
  tree={}
  for directory in directories:
   branch=tree
