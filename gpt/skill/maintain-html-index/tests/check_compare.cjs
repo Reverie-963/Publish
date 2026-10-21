@@ -13,7 +13,7 @@ function load(relative,query='',store){
 (async()=>{
  const preferences=new Map(),reader=load(doc.preview,'',preferences);reader.window.eval(read('reader.js'));reader.window.eval(read('page-zoom.js'));reader.window.__navigations=[];reader.window.__navigate=url=>reader.window.__navigations.push(url);reader.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
  const rd=reader.window.document,quick=rd.querySelector('.quick-toggle'),outline=rd.querySelector('.toc-toggle'),tree=rd.querySelector('.quick-panel');
- assert(quick&&outline&&tree.hidden);assert.equal(quick.parentElement.firstElementChild,quick);
+ assert(quick&&outline&&tree.hidden);assert(!rd.querySelector('.quick-actions').hidden);assert.equal(quick.parentElement.firstElementChild,quick);
  assert.deepEqual([...quick.parentElement.children].filter(e=>!e.classList.contains('toc-label')).map(e=>e.className),['quick-toggle','toc-toggle','quick-actions']);
  outline.click();assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();assert(!tree.hidden);assert.equal(outline.getAttribute('aria-expanded'),'false');
  assert.equal(tree.querySelectorAll('a').length,manifest.files.filter(r=>!r.external).length);assert.equal(tree.querySelector('[aria-current="page"]').dataset.fileId,doc.id);assert(tree.querySelector('details summary'));
@@ -28,7 +28,7 @@ function load(relative,query='',store){
  await new Promise(r=>reader.window.requestAnimationFrame(r));let listScroll=0;Object.defineProperty(tree,'scrollTop',{get:()=>listScroll,set:v=>listScroll=v,configurable:true});
  tree.getBoundingClientRect=()=>({top:80,bottom:280});current.getBoundingClientRect=()=>({top:430,bottom:450});
  locate.click();locate.click();await new Promise(r=>reader.window.requestAnimationFrame(r));assert.equal(listScroll,170,'reveal scrolls the tree only');
- outline.click();assert(tree.hidden);assert(rd.querySelector('.quick-actions').hidden);assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();
+ outline.click();assert(tree.hidden);assert(!rd.querySelector('.quick-actions').hidden);assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();
  tree.dispatchEvent(new reader.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(tree.hidden);assert.equal(rd.activeElement,quick);
  // Drag targets appear only during a file drag; malformed drops never navigate.
  quick.click();const file=tree.querySelector('a[data-file-id="'+other.id+'"]'),data={};

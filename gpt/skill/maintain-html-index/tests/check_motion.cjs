@@ -65,6 +65,23 @@ const tree='<button data-tree-toggle></button><ul class="tree"><li><details><sum
 {
  const t=setup(tree,{reduced:true});t.w.eval(asset('navigation.js'));t.d.querySelector('button').click();assert.equal(t.calls.length,0);assert([...t.d.querySelectorAll('details')].every(n=>n.open));t.dom.window.close();
 }
+// Quick-access controls remain present across modes; tree motion matches the index.
+{
+ const t=setup(reader+'<script src="/.file-index/assets/compare.js"></script>');
+ t.dom.reconfigure({url:'https://motion.invalid/.file-index/previews/aaaaaaaaaaaaaaaa/preview.html'});
+ t.w.FILE_INDEX_CATALOG=[{id:'aaaaaaaaaaaaaaaa',label:'Folder/Nested/Current.md',preview:'.file-index/previews/aaaaaaaaaaaaaaaa/preview.html'},{id:'bbbbbbbbbbbbbbbb',label:'Other/File.md',preview:'.file-index/previews/bbbbbbbbbbbbbbbb/preview.html'}];
+ t.w.eval(asset('reader.js'));t.w.eval(asset('compare.js'));
+ const q=t.d.querySelector('.quick-toggle'),controls=t.d.querySelector('.quick-actions'),all=t.d.querySelector('.quick-expand'),panel=t.d.querySelector('.quick-panel');
+ assert(!controls.hidden);q.click();assert(t.calls.some(a=>a.node===panel&&a.frames[0].opacity===0));
+ all.click();assert([...panel.querySelectorAll('details')].every(n=>!n.open));
+ const closed=t.calls.filter(a=>a.node.tagName==='DETAILS');assert.equal(closed.length,1,'only visible outer changed branches animate');
+ all.click();assert(closed[0].cancelled);assert.equal(t.calls.at(-1).options.duration,200);
+ const branch=panel.querySelector('details');branch.querySelector('summary').click();assert(!branch.open);assert.equal(all.title,'全部收起','hidden nested open branch still counts');
+ q.click();assert(panel.hidden&&!controls.hidden);all.click();assert(!panel.hidden&&!controls.hidden,'global control reveals the file tree when closed');
+ const live=t.calls.at(-1);t.d.dispatchEvent(new t.w.Event('page-scalechange'));assert(live.cancelled);
+ t.reduce();const count=t.calls.length;all.click();q.click();assert.equal(t.calls.length,count,'reduced motion disables quick-access animations');assert(!controls.hidden);
+ t.dom.window.close();
+}
 const template=asset('navigation-template.html');assert(template.includes('<script>\n'+asset('navigation.js')+'</script>'));
 assert(asset('scrollbar.css').includes('scrollbar-gutter:stable'));
 assert(asset('page-zoom.css').includes('@media(prefers-reduced-motion:reduce)'));

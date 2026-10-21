@@ -38,8 +38,8 @@
     motions.set(node,animation);
     animation.onfinish=()=>{if(motions.get(node)===animation)motions.delete(node);};
   }
-  function setOpen(open,remember=false,focus=false){
-    const animate=remember&&!motionPreference?.matches&&typeof layout.animate==='function';
+  function setOpen(open,remember=false,focus=false,motion=true){
+    const animate=motion&&remember&&!motionPreference?.matches&&typeof layout.animate==='function';
     // Read the visible positions before cancelling an interrupted transition.
     const previous=animate?movingNodes.map(node=>[node,node.getBoundingClientRect()]):[];
     const anchor=remember&&window.scrollY>0?currentHeading():null,before=anchor?.getBoundingClientRect().top;
@@ -71,7 +71,7 @@
     if(changed)setOpen(savedOpen());
   }
   fit();
-  toggle.addEventListener('click',()=>setOpen(panel.hidden,true));
+  toggle.addEventListener('click',event=>setOpen(panel.hidden,true,false,!event.quickSidebarTransition));
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();setOpen(false,true,true);}});
   panel.addEventListener('click',event=>{
     const link=event.target.closest('a[href]');if(!link||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.button>0)return;

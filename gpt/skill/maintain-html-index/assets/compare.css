@@ -30,7 +30,7 @@ body.is-compare-pane article{margin-top:18px}
 @media(prefers-reduced-motion:reduce){.quick-drop-zone,.quick-toggle,.quick-panel a{transition:none}}
 @media print{.quick-toggle,.quick-panel,.quick-drop-zones{display:none!important}}
 
-.quick-actions{display:flex;align-items:center;gap:2px}.quick-actions[hidden]{display:none}
+.quick-actions{display:flex;align-items:center;gap:2px}
 .quick-actions button{display:grid;place-items:center;flex:0 0 auto;width:28px;height:32px;padding:4px;border:0;border-radius:4px;background:transparent;box-shadow:none;color:var(--muted);cursor:pointer;transition:color 120ms ease,background 120ms ease}
 .quick-actions button:hover{color:var(--link)}.quick-actions button:disabled{opacity:.35;cursor:default}
 .quick-locate[aria-pressed="true"]{background:color-mix(in srgb,var(--muted) 9%,transparent)}
@@ -38,3 +38,6 @@ body.is-compare-pane article{margin-top:18px}
 .quick-expand[data-action="expand"] .quick-chevron-bottom{transform:translateY(30px) scaleY(-1)}
 @media(prefers-reduced-motion:reduce){.quick-actions button{transition:none}}
 @media print{.quick-actions{display:none!important}}
+
+.quick-expand path{transition:transform 160ms ease}
+@media(prefers-reduced-motion:reduce){.quick-expand path{transition:none}}
