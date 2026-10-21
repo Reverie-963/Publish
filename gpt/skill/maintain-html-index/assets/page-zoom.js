@@ -1,4 +1,4 @@
-// One scale for the whole document, shared by pages using this asset directory.
+// Shared content scale; navigation and scale controls retain their normal size.
 (() => {
   if (document.querySelector('.page-zoom')) return;
   let host = document.querySelector('.index-actions');
@@ -22,7 +22,14 @@
   }
   if (!host) return;
   function fitTools() {
-    if (layout) layout.classList.toggle('tools-compact', innerWidth / (Number(document.body.style.zoom) || 1) < 820);
+    const scale=Number(document.body.style.zoom)||1;
+    document.body.style.setProperty('--content-scale',String(scale));
+    document.body.style.setProperty('--ui-scale',String(1/scale));
+    if(layout){
+      layout.classList.toggle('tools-compact',innerWidth/scale<820);
+      const sidebar=layout.querySelector(':scope > .reader-sidebar,:scope > .index-sidebar');
+      if(sidebar)sidebar.style.zoom=String(1/scale);
+    }
   }
   fitTools();
   window.addEventListener('resize', fitTools);
@@ -52,7 +59,7 @@
     if (!Number.isFinite(next)) return;
     const x = point?.x ?? innerWidth / 2, y = point?.y ?? innerHeight / 2;
     let anchor = document.elementFromPoint?.(x, y);
-    if (anchor?.closest('.page-zoom') || anchor === document.body || anchor === document.documentElement) anchor = null;
+    if (anchor?.closest('.reader-sidebar,.index-sidebar') || anchor === document.body || anchor === document.documentElement) anchor = null;
     const before = anchor?.getBoundingClientRect(), oldScroll = window.scrollY, ratio = next / scale;
     document.body.style.zoom = String(next); scale = next; display();
     document.dispatchEvent(new CustomEvent('page-scalechange'));

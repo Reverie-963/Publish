@@ -19,15 +19,15 @@
   for(const name of ['localStorage','sessionStorage']){try{const store=window[name];store.getItem(storageKey);stores.push(store);}catch(_){}}
   let compact=null,active=null,frame=0,selectedFrameLink=null;
   const zoom=()=>Number(document.body.style.zoom)||1;
-  function currentHeading(){let target=entries[0].target;for(const entry of entries)if(!entry.target.closest('details:not([open])')&&entry.target.getBoundingClientRect().top<=(compact?64:48)*zoom())target=entry.target;return target;}
+  function currentHeading(){let target=entries[0].target;for(const entry of entries)if(!entry.target.closest('details:not([open])')&&entry.target.getBoundingClientRect().top<=(compact?64:48))target=entry.target;return target;}
   function markCurrent(target,reveal=false){
     const changed=active!==target;active=target;
     entries.forEach(entry=>{if(entry.target===target&&(!entry.link.dataset.frame||entry.link===(selectedFrameLink||entries[0].link)))entry.link.setAttribute('aria-current','location');else entry.link.removeAttribute('aria-current');});
     if(panel.hidden||(!changed&&!reveal))return;
     const link=panel.querySelector('a[aria-current]');if(!link)return;
     const box=panel.getBoundingClientRect(),item=link.getBoundingClientRect();
-    if(item.top<box.top)panel.scrollTop+=(item.top-box.top)/zoom();
-    else if(item.bottom>box.bottom)panel.scrollTop+=(item.bottom-box.bottom)/zoom();
+    if(item.top<box.top)panel.scrollTop+=(item.top-box.top);
+    else if(item.bottom>box.bottom)panel.scrollTop+=(item.bottom-box.bottom);
   }
   const motions=new Map(),motionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const movingNodes=[layout.querySelector('article'),sidebar].filter(Boolean);
@@ -53,7 +53,7 @@
     }
     if(animate){
       for(const [node,old] of previous){
-        const next=node.getBoundingClientRect(),dx=(old.left-next.left)/zoom(),dy=(old.top-next.top)/zoom();
+        const next=node.getBoundingClientRect(),scale=node===sidebar?zoom()*(Number(sidebar.style.zoom)||1):zoom(),dx=(old.left-next.left)/scale,dy=(old.top-next.top)/scale;
         if(Math.abs(dx)+Math.abs(dy)>.5)glide(node,[{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}]);
       }
       if(open)glide(panel,[{opacity:0},{opacity:1}]);
@@ -65,8 +65,9 @@
     stopMotion();
     const next=window.innerWidth/zoom()<820,changed=compact!==next;compact=next;
     layout.classList.toggle('toc-compact',compact);
+    sidebar.style.zoom=String(1/zoom());
     sidebar.style.top=(compact?0:24)+'px';
-    panel.style.maxHeight=Math.max(80,window.innerHeight/zoom()*(compact ? 0.3 : 1)-(compact?0:96))+'px';
+    panel.style.maxHeight=Math.max(80,window.innerHeight*(compact ? 0.3 : 1)-(compact?0:96))+'px';
     if(changed)setOpen(savedOpen());
   }
   fit();

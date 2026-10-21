@@ -55,6 +55,15 @@ try{
   const side=portrait.doc.querySelector('.reader-sidebar,.index-sidebar'),bar=side.querySelector('.toc-toolbar,.index-actions');
   assert.equal(portrait.w.getComputedStyle(side).top,'0px','portrait sticky strip has no top gap');assert.equal(portrait.w.getComputedStyle(side).backgroundColor,portrait.w.getComputedStyle(portrait.doc.body).backgroundColor);
   assert.equal(portrait.w.getComputedStyle(bar).flexWrap,'nowrap');assert.equal(portrait.w.getComputedStyle(bar.querySelector('.page-zoom')).flexBasis,'auto');
+  // App zoom cancels at the rail only, on every surface and after restoration.
+  for(const scale of [.5,.99,1,1.5,2.9,3]){
+   const fixed=setup(html,scale),rail=fixed.doc.querySelector('.reader-sidebar,.index-sidebar');
+   assert(rail);assert(Math.abs((Number(fixed.doc.body.style.zoom)||1)*Number(rail.style.zoom)-1)<1e-9,'navigation retains 100% effective scale');
+   assert.equal(fixed.doc.body.style.getPropertyValue('--content-scale'),String(scale));
+   assert(Math.abs(Number(fixed.doc.body.style.getPropertyValue('--ui-scale'))*scale-1)<1e-9);
+   assert.equal(fixed.doc.querySelector('.page-scale').textContent,Math.round(scale*100)+'%');
+   fixed.doc.querySelector('.page-scale').click();assert.equal(rail.style.zoom,'1');
+  }
   const restored=setup(html,1.5);assert.equal(restored.doc.body.style.zoom,'1.5');assert(restored.doc.querySelector('.page-zoom-panel').hidden);
   const noStorage=setup(html,null,true);noStorage.doc.querySelector('[data-scale-action="in"]').click();assert.equal(noStorage.doc.body.style.zoom,'1.1');
  }
@@ -63,5 +72,5 @@ try{
  code.getBoundingClientRect=()=>({top:600*(Number(anchored.doc.body.style.zoom)||1)-anchored.w.scrollY});
  anchored.doc.querySelector('[data-scale-action="in"]').click();assert(Math.abs(anchored.w.scrollY-590)<.01,'maintains the content point at viewport center');
  const flat=setup(cases[2]);const style=flat.w.getComputedStyle(flat.doc.querySelector('pre'));assert.equal(style.backgroundColor,'rgba(0, 0, 0, 0)');assert.equal(parseFloat(style.borderRadius),0);assert.equal(style.boxShadow,'none');
- console.log(JSON.stringify({passed:['code colors preserve source text','Markdown code highlighting and escaping','code block has no background, border or shadow','left horizontal controls on root, nested indexes and readers','portrait and 99% zoom have zero sticky offset','whole-page scale on index and readers','one-click percentage reset and separate discreet menu','keyboard shortcuts, reset and bounds','Ctrl-wheel scale, Command-wheel and ordinary wheel unchanged','editable fields preserved','scale restoration and blocked storage fallback','viewport content anchor retained','no image-only viewer'],scope:'DOM simulation; real-browser layout and gesture testing not performed'},null,2));
+ console.log(JSON.stringify({passed:['code colors preserve source text','Markdown code highlighting and escaping','code block has no background, border or shadow','left horizontal controls on root, nested indexes and readers','portrait and 99% zoom have zero sticky offset','content scale with fixed-size navigation at 50/99/100/150/290/300 percent','one-click percentage reset and separate discreet menu','keyboard shortcuts, reset and bounds','Ctrl-wheel scale, Command-wheel and ordinary wheel unchanged','editable fields preserved','scale restoration and blocked storage fallback','viewport content anchor retained','no image-only viewer'],scope:'DOM simulation; real-browser layout and gesture testing not performed'},null,2));
 }finally{doms.forEach(d=>d.window.close());}
