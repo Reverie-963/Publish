@@ -25,7 +25,7 @@
 
 /* Keep the rail at 100% while the content uses the saved page scale. */
 .layout.has-toc,.layout.has-reader-tools,.index-layout{grid-template-columns:calc(120px * var(--ui-scale,1)) minmax(0,1fr);gap:calc(32px * var(--ui-scale,1));max-width:calc(960px + 152px * var(--ui-scale,1))}
-.toc-open .layout.has-toc{grid-template-columns:calc(210px * var(--ui-scale,1)) minmax(0,1fr);max-width:calc(960px + 242px * var(--ui-scale,1))}
-.layout.has-toc.toc-compact,.toc-open .layout.has-toc.toc-compact,.layout.has-reader-tools.tools-compact,.index-layout.tools-compact{grid-template-columns:minmax(0,1fr);max-width:960px;gap:calc(8px * var(--ui-scale,1))}
+.layout.has-reader-tools.has-toc,.layout.has-toc{grid-template-columns:calc(210px * var(--ui-scale,1)) minmax(0,1fr);max-width:calc(960px + 242px * var(--ui-scale,1))}
+.layout.has-toc.toc-compact,.layout.has-reader-tools.has-toc.toc-compact,.layout.has-reader-tools.tools-compact,.index-layout.tools-compact{grid-template-columns:minmax(0,1fr);max-width:960px;gap:calc(8px * var(--ui-scale,1))}
 .tools-compact>.reader-sidebar::before,.tools-compact>.index-sidebar::before{inset:-1px calc(-1 * var(--page-gutter) * var(--content-scale,1)) 0}
 .tools-compact :is(h1,h2,h3,h4,h5,h6){scroll-margin-top:calc(64px * var(--ui-scale,1))}
