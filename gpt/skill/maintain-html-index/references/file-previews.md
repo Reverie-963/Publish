@@ -63,4 +63,4 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/maintain-html-index/scripts/build_fo
 
 用生成器构建样例索引后，可用 `tests/check_ui.cjs ROOT` 做 DOM 交互测试；需要在独立测试环境安装 jsdom 并通过 NODE_PATH 使其可见。这不会启动真实浏览器，不能用来证明视觉布局或音视频播放。
 
-整页缩放与语法配色可运行 `tests/check_preview_interactions.cjs ROOT` 检查；与目录交互测试一样需要 jsdom。检查包含比例调整、复位、切页恢复、存储禁用、快捷键与修饰键滚轮、普通滚动保留，以及高亮前后代码文本一致；真实浏览器排版与手势仍需单独核验。
+整页缩放与语法配色可运行 `tests/check_preview_interactions.cjs ROOT` 检查；与目录交互测试一样需要 jsdom。检查包含比例调整、复位、切页恢复、存储禁用、键盘快捷键、Ctrl 滚轮、Command 加双指滚动不缩放、普通滚动保留，以及高亮前后代码文本一致；真实浏览器排版与手势仍需单独核验。

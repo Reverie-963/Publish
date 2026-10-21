@@ -91,7 +91,7 @@
     setScale(event.key === '0' ? 1 : step(event.key === '-' ? -1 : 1));
   });
   document.addEventListener('wheel', event => {
-    if (!(event.ctrlKey || event.metaKey) || editable(event.target) || !event.deltaY) return;
+    if (event.metaKey || !event.ctrlKey || editable(event.target) || !event.deltaY) return;
     event.preventDefault();
     const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1);
     setScale(scale * Math.exp(-Math.max(-80, Math.min(80, pixels)) * .008), {x:event.clientX,y:event.clientY});
