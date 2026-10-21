@@ -86,7 +86,33 @@
     const state = JSON.stringify({version:1, open:branches.filter(node => node.open).map(key), scroll:window.scrollY});
     for (const store of stores) { try { store.setItem(storageKey, state); } catch (_) {} }
   }
+  const motions=new Map(),motionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  function stopMotion(){for(const animation of motions.values())animation.cancel();motions.clear();}
+  motionPreference?.addEventListener?.('change',stopMotion);
+  window.addEventListener('resize',stopMotion);
+  document.addEventListener('page-scalechange',stopMotion);
+  function changeBranches(nodes,open){
+    const animate=!motionPreference?.matches&&typeof tree.animate==='function';
+    const zoom=Number(document.body.style.zoom)||1;
+    // Only animate the outer changed branches; nested heights must not compound.
+    const outer=nodes.filter(node=>!nodes.some(other=>other!==node&&other.contains(node)));
+    const previous=animate?outer.map(node=>[node,node.getBoundingClientRect().height/zoom]):[];
+    stopMotion();
+    nodes.forEach(node=>{node.open=open;});
+    for(const [node,height] of previous){
+      const next=node.getBoundingClientRect().height/zoom;
+      if(Math.abs(height-next)<.5)continue;
+      const animation=node.animate([
+        {height:height+'px',overflow:'clip',boxSizing:'border-box'},
+        {height:next+'px',overflow:'clip',boxSizing:'border-box'}
+      ],{duration:200,easing:'cubic-bezier(.2,.7,.2,1)'});
+      motions.set(node,animation);
+      animation.onfinish=()=>{if(motions.get(node)===animation)motions.delete(node);};
+    }
+    save();
+  }
   function restore() {
+    stopMotion();
     for (const store of stores) {
       try {
         const state = JSON.parse(store.getItem(storageKey));
@@ -101,11 +127,16 @@
   }
   restore();
   branches.forEach(node => node.addEventListener('toggle', save));
-  tree.addEventListener('click', event => { if (event.target.closest('a')) save(); }, true);
+  tree.addEventListener('click', event => {
+    if(event.target.closest('a')){save();return;}
+    const summary=event.target.closest('summary');
+    if(!summary||!tree.contains(summary)||event.defaultPrevented||event.button>0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    event.preventDefault();
+    changeBranches([summary.parentElement],!summary.parentElement.open);
+  });
   buttons.forEach(button => button.addEventListener('click', () => {
     const open = !branches.some(node => node.open);
-    branches.forEach(node => { node.open = open; });
-    save();
+    changeBranches(branches,open);
   }));
   window.addEventListener('pagehide', save);
   window.addEventListener('pageshow', restore);

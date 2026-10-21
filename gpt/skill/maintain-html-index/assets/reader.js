@@ -29,19 +29,40 @@
     if(item.top<box.top)panel.scrollTop+=(item.top-box.top)/zoom();
     else if(item.bottom>box.bottom)panel.scrollTop+=(item.bottom-box.bottom)/zoom();
   }
+  const motions=new Map(),motionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const movingNodes=[layout.querySelector('article'),sidebar].filter(Boolean);
+  function stopMotion(){for(const animation of motions.values())animation.cancel();motions.clear();}
+  motionPreference?.addEventListener?.('change',stopMotion);
+  function glide(node,frames){
+    const animation=node.animate(frames,{duration:200,easing:'cubic-bezier(.2,.7,.2,1)'});
+    motions.set(node,animation);
+    animation.onfinish=()=>{if(motions.get(node)===animation)motions.delete(node);};
+  }
   function setOpen(open,remember=false,focus=false){
-    const anchor=remember?currentHeading():null,before=anchor?.getBoundingClientRect().top;
+    const animate=remember&&!motionPreference?.matches&&typeof layout.animate==='function';
+    // Read the visible positions before cancelling an interrupted transition.
+    const previous=animate?movingNodes.map(node=>[node,node.getBoundingClientRect()]):[];
+    const anchor=remember&&window.scrollY>0?currentHeading():null,before=anchor?.getBoundingClientRect().top;
+    stopMotion();
     document.body.classList.toggle('toc-open',open);panel.hidden=!open;panel.inert=!open;
     toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'收起文稿目录':'展开文稿目录');toggle.title=open?'收起文稿目录 · Esc':'展开文稿目录';
     if(remember){
       for(const store of stores){try{store.setItem(storageKey+(compact?':compact':':wide'),String(open));}catch(_){}}
-      const shift=anchor.getBoundingClientRect().top-before;
+      const shift=anchor?anchor.getBoundingClientRect().top-before:0;
       if(Math.abs(shift)>1){const old=document.documentElement.style.scrollBehavior;document.documentElement.style.scrollBehavior='auto';window.scrollTo(window.scrollX,Math.max(0,window.scrollY+shift));document.documentElement.style.scrollBehavior=old;}
+    }
+    if(animate){
+      for(const [node,old] of previous){
+        const next=node.getBoundingClientRect(),dx=(old.left-next.left)/zoom(),dy=(old.top-next.top)/zoom();
+        if(Math.abs(dx)+Math.abs(dy)>.5)glide(node,[{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}]);
+      }
+      if(open)glide(panel,[{opacity:0},{opacity:1}]);
     }
     markCurrent(currentHeading(),true);if(focus)toggle.focus({preventScroll:true});
   }
   function savedOpen(){for(const store of stores){try{const value=store.getItem(storageKey+(compact?':compact':':wide'));if(value==='true'||value==='false')return value==='true';}catch(_){}}return false;}
   function fit(){
+    stopMotion();
     const next=window.innerWidth/zoom()<820,changed=compact!==next;compact=next;
     layout.classList.toggle('toc-compact',compact);
     sidebar.style.top=(compact?0:24)+'px';

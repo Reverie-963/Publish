@@ -16,3 +16,9 @@
 .tools-compact>.reader-sidebar::before,.tools-compact>.index-sidebar::before{content:"";position:absolute;inset:-1px calc(-1 * var(--page-gutter)) 0;z-index:-1;background:var(--bg);pointer-events:none}
 .tools-compact :is(h1,h2,h3,h4,h5,h6){scroll-margin-top:64px}
 @media print{.layout.has-reader-tools,.index-layout{display:block!important;max-width:none!important}.index-sidebar{display:none}}
+
+/* Small state changes only: no page entrance, bounce, or permanent transform. */
+.page-zoom button,.toc-toggle,.tree-toggle,.toc-panel a{transition:color 120ms ease,opacity 120ms ease}
+.page-zoom-panel:not([hidden]){animation:quiet-menu-in 140ms ease-out}
+@keyframes quiet-menu-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.page-zoom-panel:not([hidden]){animation:none}.page-zoom button,.toc-toggle,.tree-toggle,.toc-panel a{transition:none}}
