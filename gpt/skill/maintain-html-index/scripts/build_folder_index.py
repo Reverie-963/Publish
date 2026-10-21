@@ -3,6 +3,7 @@
 import argparse, csv, hashlib, html, json, os, re, shutil, subprocess, tempfile, zipfile
 from pathlib import Path
 from html_outline import html_preview
+from native_opener import register_originals
 from urllib.parse import quote, urlparse, unquote
 
 MARKER='<!-- codex-folder-index v2 -->'
@@ -42,7 +43,7 @@ def page(title,body,out,root,index):
  heading=match.group(1) if match else '<h1>'+ESC(title)+'</h1>'
  if match:body=body[match.end():]
  header='<header class="reader-heading">'+heading+'<a class="return-index" href="'+rel(out,index)+'">返回总索引</a></header>'
- return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/file-catalog.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/compare.js')+'"></script></body></html>'
+ return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/file-catalog.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/compare.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/native-original.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
@@ -207,7 +208,7 @@ def main():
  work.mkdir(exist_ok=True);assets=work/'assets';assets.mkdir(exist_ok=True)
  # Claim only a new directory before generation, so an interrupted run is recoverable.
  if not manifest.exists():write(manifest,json.dumps({'generator':'codex-folder-index-v2','files':[]}))
- for name in ['reader.js','page-zoom.js','compare.js','compare.css']:write(assets/name,(SKILL/'assets'/name).read_text())
+ for name in ['reader.js','page-zoom.js','compare.js','compare.css','native-original.js']:write(assets/name,(SKILL/'assets'/name).read_text())
  katex=SKILL/'node_modules/katex/dist'
  if katex.is_dir():
   (assets/'katex').mkdir(exist_ok=True);shutil.copy2(katex/'katex.min.css',assets/'katex/katex.min.css');shutil.copytree(katex/'fonts',assets/'katex/fonts',dirs_exist_ok=True)
@@ -224,6 +225,7 @@ def main():
    if f.suffix=='.html' and f.with_suffix('.md').exists() and '<!-- codex-md-reader v1 -->' in f.read_text(errors='replace')[:250]:continue
    if name=='index.html' and ('codex-index-state:start' in f.read_text(errors='replace') or MARKER in f.read_text(errors='replace')):continue
    sources.append(f)
+ native_links=register_originals(root,sources)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
  for directory in directories:mapping[str(root/directory)]=str(work/'folders'/hashlib.sha256(directory.encode()).hexdigest()[:16]/'index.html')
  version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/important_blocks.cjs','scripts/highlight_code.cjs','scripts/html_outline.py','package-lock.json','assets/reader.css','assets/preview.css','assets/code.css','assets/scrollbar.css','assets/page-zoom.css','assets/compare.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
@@ -236,9 +238,20 @@ def main():
   else:
    try:body,notes,status=render(src,out,args,mapping)
    except Exception as e:notes=[str(e)];status='error';body='<h1>'+ESC(src.name)+'</h1>'+notice('未能生成内容预览：'+str(e))
-   body+='<p><a href="'+rel(out,src)+'" target="_blank" rel="noopener">打开原件</a></p>'
+   body+='<p><a href="'+rel(out,src)+'"'+(' data-native-open="'+ESC(native_links[str(src)],quote=True)+'"' if str(src) in native_links else '')+' target="_blank" rel="noopener">打开原件</a></p>'
    write(out,page(src.name,body,out,root,index))
    rec={'id':out.parent.name,'path':sourcepath,'label':src.name,'type':src.suffix.lower().lstrip('.') or '无扩展名','source':rel(index,src),'preview':rel(index,out),'sha256':sha,'status':status,'notes':notes,'links_hash':links_hash if src.suffix.lower()=='.md' else None}
+  preview_text=out.read_text()
+  # Update only the generator's final original-file anchor, never document links.
+  marker=preview_text.rfind('>打开原件</a>')
+  start=preview_text.rfind('<a ',0,marker)
+  if marker>=0 and start>=0:
+   anchor=re.sub(r' data-native-open="[^"]*"','',preview_text[start:marker])
+   if str(src) in native_links:anchor+=' data-native-open="'+ESC(native_links[str(src)],quote=True)+'"'
+   preview_text=preview_text[:start]+anchor+preview_text[marker:]
+  native_script='<script src="'+rel(out,assets/'native-original.js')+'"></script>'
+  if native_script not in preview_text:preview_text=preview_text.replace('</body>',native_script+'</body>')
+  write(out,preview_text)
   if digest(src)!=sha:raise RuntimeError('Source changed during build: '+str(src))
   records.append(rec)
  if args.links:
