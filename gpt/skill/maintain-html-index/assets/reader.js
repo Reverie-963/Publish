@@ -44,7 +44,7 @@
   function fit(){
     const next=window.innerWidth/zoom()<820,changed=compact!==next;compact=next;
     layout.classList.toggle('toc-compact',compact);
-    sidebar.style.top=(compact?8:24)+'px';
+    sidebar.style.top=(compact?0:24)+'px';
     panel.style.maxHeight=Math.max(80,window.innerHeight/zoom()*(compact ? 0.3 : 1)-(compact?0:96))+'px';
     if(changed)setOpen(savedOpen());
   }

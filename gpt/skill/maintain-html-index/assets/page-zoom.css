@@ -3,4 +3,16 @@
 
 .page-zoom .page-scale{padding-right:2px}.page-zoom .page-scale-menu{display:grid;place-items:center;min-width:24px;padding:4px}
 
-.layout.has-reader-tools{display:grid;grid-template-columns:72px minmax(0,1fr);gap:32px;max-width:1064px;align-items:start}.reader-sidebar{z-index:20}.toc-toolbar{flex-wrap:wrap;gap:6px 8px}.toc-toolbar>.page-zoom{flex-basis:100%;order:2}.toc-toolbar .page-zoom-panel{left:0;right:auto}.layout.has-reader-tools.tools-compact{grid-template-columns:minmax(0,1fr);max-width:960px;gap:8px}.tools-compact .reader-sidebar{top:8px;background:var(--bg)}.tools-compact .toc-toolbar{flex-wrap:nowrap}.tools-compact .toc-toolbar>.page-zoom{flex-basis:auto}.tools-compact :is(h1,h2,h3,h4,h5,h6){scroll-margin-top:56px}@media print{.layout.has-reader-tools{display:block!important;max-width:none!important}}
+:root{--page-gutter:clamp(12px,3.4vw,32px)}
+.layout.has-reader-tools,.index-layout{display:grid;grid-template-columns:120px minmax(0,1fr);gap:32px;max-width:1112px;align-items:start}
+.index-layout{margin:0 auto;padding:38px var(--page-gutter) 72px}.index-layout>main{min-width:0;max-width:none;width:100%;margin:0;padding:0}
+.index-sidebar{position:sticky;top:24px;align-self:start;min-width:0;z-index:20}.reader-sidebar{z-index:20}
+.toc-toolbar,.index-sidebar .index-actions{display:flex;align-items:center;flex-wrap:nowrap;gap:8px}
+.toc-toolbar>.page-zoom{flex:0 0 auto;order:0}.toc-label{display:none!important}
+.toc-toolbar .page-zoom-panel,.index-sidebar .page-zoom-panel{left:0;right:auto}
+.layout.has-reader-tools.tools-compact,.index-layout.tools-compact{grid-template-columns:minmax(0,1fr);max-width:960px;gap:8px}
+.tools-compact>.reader-sidebar,.tools-compact>.index-sidebar{top:0;background:var(--bg);padding:6px 0;isolation:isolate}
+/* Cover the full gutter and a fractional pixel above the sticky edge at 99% zoom. */
+.tools-compact>.reader-sidebar::before,.tools-compact>.index-sidebar::before{content:"";position:absolute;inset:-1px calc(-1 * var(--page-gutter)) 0;z-index:-1;background:var(--bg);pointer-events:none}
+.tools-compact :is(h1,h2,h3,h4,h5,h6){scroll-margin-top:64px}
+@media print{.layout.has-reader-tools,.index-layout{display:block!important;max-width:none!important}.index-sidebar{display:none}}

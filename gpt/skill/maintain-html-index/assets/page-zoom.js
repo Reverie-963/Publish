@@ -2,8 +2,15 @@
 (() => {
   if (document.querySelector('.page-zoom')) return;
   let host = document.querySelector('.index-actions');
-  const layout = document.querySelector('.layout');
-  if (!host && layout && document.querySelector('.reader-heading')) {
+  let layout = document.querySelector('.layout');
+  if (host) {
+    const main = document.querySelector('body > main');
+    if (main) {
+      layout = document.createElement('div'); layout.className = 'index-layout';
+      const sidebar = document.createElement('div'); sidebar.className = 'index-sidebar';
+      main.before(layout); sidebar.append(host); layout.append(sidebar, main);
+    }
+  } else if (layout && document.querySelector('.reader-heading')) {
     let sidebar = layout.querySelector('.reader-sidebar');
     if (!sidebar) {
       sidebar = document.createElement('div'); sidebar.className = 'reader-sidebar';
@@ -31,8 +38,8 @@
   let scale = 1;
   const ui = document.createElement('div'); ui.className = 'page-zoom';
   ui.innerHTML = '<button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" class="page-scale-menu" aria-label="调整页面缩放" aria-expanded="false" aria-controls="page-scale-panel" title="调整页面缩放"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></button><div id="page-scale-panel" class="page-zoom-panel" role="group" aria-label="页面缩放" hidden><button type="button" data-scale-action="out" aria-label="缩小页面">−</button><button type="button" data-scale-action="reset" aria-label="恢复页面原始大小">100%</button><button type="button" data-scale-action="in" aria-label="放大页面">+</button></div>';
-  // On index pages, keep the existing collapse icon at the far right.
-  if (host.classList.contains('toc-toolbar')) host.append(ui); else host.prepend(ui);
+  // Both surfaces place their navigation control before the scale controls.
+  host.append(ui);
   const reset = ui.querySelector('.page-scale'), trigger = ui.querySelector('.page-scale-menu'), panel = ui.querySelector('.page-zoom-panel');
   const smaller = ui.querySelector('[data-scale-action="out"]'), larger = ui.querySelector('[data-scale-action="in"]');
   function display() {

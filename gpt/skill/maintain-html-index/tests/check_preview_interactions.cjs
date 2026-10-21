@@ -23,7 +23,7 @@ try{
  const js=fs.readFileSync(path.join(skill,'assets/page-zoom.js'),'utf8');
  function setup(html, prior, blocked=false){
   const d=parse(html),w=d.window;
-  Object.defineProperty(w,'innerWidth',{value:1000});Object.defineProperty(w,'innerHeight',{value:800});
+  Object.defineProperty(w,'innerWidth',{value:1000,configurable:true});Object.defineProperty(w,'innerHeight',{value:800});
   w.scrollTo=(x,y)=>{Object.defineProperty(w,'scrollY',{value:y,configurable:true});};
   const source=w.document.querySelector('script[src$="page-zoom.js"]');assert(source,'all generated pages include page zoom');
   const key='file-index:page-scale:v1:'+new URL('.',source.src).href;
@@ -34,7 +34,7 @@ try{
  const cases=[fs.readFileSync(path.join(root,'00 - 文件索引.html'),'utf8'),content(records.find(r=>r.type==='pdf')),content(records.find(r=>r.type==='py')),fs.readFileSync(path.join(root,decodeURIComponent(JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).directories[0].preview)),'utf8')];
  for(const html of cases){
   const {w,doc,key}=setup(html),trigger=doc.querySelector('.page-scale-menu'),reset=doc.querySelector('.page-scale'),panel=doc.querySelector('.page-zoom-panel');
-  assert(trigger&&panel.hidden);if(doc.querySelector('.layout')){assert(doc.querySelector('.reader-sidebar .page-zoom'));assert(!doc.querySelector('.reader-heading .page-zoom'));}assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
+  assert(trigger&&panel.hidden);if(doc.querySelector('.tree')){assert(doc.querySelector('.index-layout > .index-sidebar > .index-actions'));assert(!doc.querySelector('header .index-actions'));assert(doc.querySelector('.index-layout > main .tree'));}if(doc.querySelector('.layout')){assert(doc.querySelector('.reader-sidebar .page-zoom'));assert(!doc.querySelector('.reader-heading .page-zoom'));}assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
   const act=name=>doc.querySelector('[data-scale-action="'+name+'"]').click();
   trigger.click();assert(!panel.hidden);act('in');assert.equal(doc.body.style.zoom,'1.1');assert.equal(w.localStorage.getItem(key),'1.1');assert.equal(reset.textContent,'110%');w.localStorage.setItem(key,'1.25');w.dispatchEvent(new w.Event('pageshow'));assert.equal(doc.body.style.zoom,'1.25');
   reset.click();assert.equal(doc.body.style.zoom,'1');assert(panel.hidden,'one click resets without opening controls');assert.equal(reset.textContent,'100%');trigger.click();
@@ -49,6 +49,10 @@ try{
   for(let i=0;i<30;i++)act('in');assert.equal(doc.body.style.zoom,'3');assert(doc.querySelector('[data-scale-action="in"]').disabled);
   for(let i=0;i<30;i++)act('out');assert.equal(doc.body.style.zoom,'0.5');assert(doc.querySelector('[data-scale-action="out"]').disabled);
   trigger.click();doc.body.click();assert(panel.hidden);
+  const portrait=setup(html,.99);Object.defineProperty(portrait.w,'innerWidth',{value:600,configurable:true});portrait.w.dispatchEvent(new portrait.w.Event('resize'));
+  const side=portrait.doc.querySelector('.reader-sidebar,.index-sidebar'),bar=side.querySelector('.toc-toolbar,.index-actions');
+  assert.equal(portrait.w.getComputedStyle(side).top,'0px','portrait sticky strip has no top gap');assert.equal(portrait.w.getComputedStyle(side).backgroundColor,portrait.w.getComputedStyle(portrait.doc.body).backgroundColor);
+  assert.equal(portrait.w.getComputedStyle(bar).flexWrap,'nowrap');assert.equal(portrait.w.getComputedStyle(bar.querySelector('.page-zoom')).flexBasis,'auto');
   const restored=setup(html,1.5);assert.equal(restored.doc.body.style.zoom,'1.5');assert(restored.doc.querySelector('.page-zoom-panel').hidden);
   const noStorage=setup(html,null,true);noStorage.doc.querySelector('[data-scale-action="in"]').click();assert.equal(noStorage.doc.body.style.zoom,'1.1');
  }
@@ -57,5 +61,5 @@ try{
  code.getBoundingClientRect=()=>({top:600*(Number(anchored.doc.body.style.zoom)||1)-anchored.w.scrollY});
  anchored.doc.querySelector('[data-scale-action="in"]').click();assert(Math.abs(anchored.w.scrollY-590)<.01,'maintains the content point at viewport center');
  const flat=setup(cases[2]);const style=flat.w.getComputedStyle(flat.doc.querySelector('pre'));assert.equal(style.backgroundColor,'rgba(0, 0, 0, 0)');assert.equal(parseFloat(style.borderRadius),0);assert.equal(style.boxShadow,'none');
- console.log(JSON.stringify({passed:['code colors preserve source text','Markdown code highlighting and escaping','code block has no background, border or shadow','whole-page scale on index and readers','one-click percentage reset and separate discreet menu','keyboard shortcuts, reset and bounds','modifier-wheel scale, ordinary wheel unchanged','editable fields preserved','scale restoration and blocked storage fallback','viewport content anchor retained','no image-only viewer'],scope:'DOM simulation; real-browser layout and gesture testing not performed'},null,2));
+ console.log(JSON.stringify({passed:['code colors preserve source text','Markdown code highlighting and escaping','code block has no background, border or shadow','left horizontal controls on root, nested indexes and readers','portrait and 99% zoom have zero sticky offset','whole-page scale on index and readers','one-click percentage reset and separate discreet menu','keyboard shortcuts, reset and bounds','modifier-wheel scale, ordinary wheel unchanged','editable fields preserved','scale restoration and blocked storage fallback','viewport content anchor retained','no image-only viewer'],scope:'DOM simulation; real-browser layout and gesture testing not performed'},null,2));
 }finally{doms.forEach(d=>d.window.close());}
