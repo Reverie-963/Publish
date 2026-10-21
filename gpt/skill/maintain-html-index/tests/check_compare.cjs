@@ -10,11 +10,28 @@ function load(relative,query=''){
  d.window.eval(read('file-catalog.js'));return d;
 }
 (async()=>{
- const reader=load(doc.preview);reader.window.eval(read('reader.js'));reader.window.eval(read('page-zoom.js'));reader.window.eval(read('compare.js'));
- const control=reader.window.document.querySelector('.compare-control');assert(control);assert(control.querySelector('.compare-picker').hidden);control.querySelector('button').click();assert(!control.querySelector('.compare-picker').hidden);
- assert(![...control.querySelectorAll('option')].some(o=>o.value===doc.id));
- control.querySelector('select').dispatchEvent(new reader.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(control.querySelector('.compare-picker').hidden);reader.window.close();
- const pane=load(doc.preview,'?compare-pane=1');pane.window.eval(read('reader.js'));pane.window.eval(read('page-zoom.js'));pane.window.eval(read('compare.js'));assert(pane.window.document.body.classList.contains('is-compare-pane'));assert(!pane.window.document.querySelector('.compare-control'));pane.window.close();
+ const reader=load(doc.preview);reader.window.eval(read('reader.js'));reader.window.eval(read('page-zoom.js'));reader.window.__navigations=[];reader.window.__navigate=url=>reader.window.__navigations.push(url);reader.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
+ const rd=reader.window.document,quick=rd.querySelector('.quick-toggle'),outline=rd.querySelector('.toc-toggle'),tree=rd.querySelector('.quick-panel');
+ assert(quick&&outline&&tree.hidden);assert.equal(quick.parentElement.firstElementChild,quick);
+ assert.deepEqual([...quick.parentElement.children].filter(e=>!e.classList.contains('toc-label')).map(e=>e.className),['quick-toggle','toc-toggle','page-zoom']);
+ outline.click();assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();assert(!tree.hidden);assert.equal(outline.getAttribute('aria-expanded'),'false');
+ assert.equal(tree.querySelectorAll('a').length,manifest.files.filter(r=>!r.external).length);assert.equal(tree.querySelector('[aria-current="page"]').dataset.fileId,doc.id);assert(tree.querySelector('details summary'));
+ outline.click();assert(tree.hidden);assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();
+ tree.dispatchEvent(new reader.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(tree.hidden);assert.equal(rd.activeElement,quick);
+ // Drag targets appear only during a file drag; malformed drops never navigate.
+ quick.click();const file=tree.querySelector('a[data-file-id="'+other.id+'"]'),data={};
+ const transfer={types:['application/x-file-index-preview'],setData:(k,v)=>data[k]=v,getData:k=>data[k]||''};
+ function drag(type,target,dt=transfer){const e=new reader.window.Event(type,{bubbles:true,cancelable:true});Object.defineProperty(e,'dataTransfer',{value:dt});target.dispatchEvent(e);return e;}
+ drag('dragstart',file);const zones=rd.querySelector('.quick-drop-zones');assert(!zones.hidden);assert.equal(JSON.parse(data[transfer.types[0]]).id,other.id);
+ assert(drag('dragover',zones.firstElementChild).defaultPrevented);assert(zones.firstElementChild.classList.contains('is-over'));
+ assert(!drag('drop',zones.firstElementChild,{...transfer,getData:()=>'{"catalog":"other","id":"invalid"}'}).defaultPrevented);assert(zones.hidden);
+ for(const side of ['left','right']){
+  drag('dragstart',file);assert(drag('drop',zones.querySelector('[data-side="'+side+'"]')).defaultPrevented);
+  const destination=new URL(reader.window.__navigations.at(-1)),params=new URLSearchParams(destination.hash.slice(1));
+  assert(destination.pathname.endsWith('/.file-index/compare.html'));assert.equal(params.get(side),other.id);assert.equal(params.get(side==='left'?'right':'left'),doc.id);
+ }
+ drag('dragstart',file);drag('dragend',file);assert(zones.hidden);reader.window.close();
+ const pane=load(doc.preview,'?compare-pane=1');pane.window.eval(read('reader.js'));pane.window.eval(read('page-zoom.js'));pane.window.eval(read('compare.js'));assert(pane.window.document.body.classList.contains('is-compare-pane'));assert(!pane.window.document.querySelector('.quick-drop-zones'));pane.window.close();
  const pair=load('.file-index/compare.html','#left='+doc.id+'&right='+other.id);pair.window.eval(read('compare.js'));
  const d=pair.window.document,frames=[...d.querySelectorAll('iframe')],selects=[...d.querySelectorAll('.compare-file')];
  assert.equal(frames[0].src,urlFor(doc.preview)+'?compare-pane=1');assert.equal(frames[1].src,urlFor(other.preview)+'?compare-pane=1');assert.equal(d.querySelector('#compare-return').href,urlFor(doc.preview));
@@ -42,8 +59,11 @@ function load(relative,query=''){
  choice.value=third.id;choice.dispatchEvent(new child.window.Event('change'));assert.equal(sent.at(-1).next,third.id);
  const layout=child.window.document.querySelector('.layout'),side=child.window.document.querySelector('.reader-sidebar');
  assert.equal(child.window.getComputedStyle(layout).paddingTop,'0px');assert.equal(side.style.top,'0px');
+ const quickChild=toolbar.querySelector('.quick-toggle');assert(quickChild);quickChild.click();
+ const childFile=child.window.document.querySelector('.quick-panel a[data-file-id="'+third.id+'"]');childFile.click();assert.equal(sent.at(-1).type,'select');assert.equal(sent.at(-1).next,third.id);
+ childFile.dispatchEvent(new child.window.KeyboardEvent('keydown',{key:'Enter',altKey:true,bubbles:true,cancelable:true}));assert.equal(sent.at(-1).type,'place');assert.equal(sent.at(-1).side,'left');
  const reset=toolbar.querySelector('.page-scale');reset.click();assert.equal(reset.textContent,'100%');
  child.window.close();
  pair.window.close();
- console.log('PASS: offline catalog, quiet picker, independent file selection, valid return link, no nested comparison, invalid IDs confined to catalog, unified pinned toolbar and validated frame messages (DOM simulation).');
+ console.log('PASS: offline catalog, file tree and sidebar modes, independent file selection, valid return link, drag targets and keyboard placement, invalid IDs confined to catalog, unified pinned toolbar and validated frame messages (DOM simulation).');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -72,7 +72,7 @@
   }
   fit();
   toggle.addEventListener('click',()=>setOpen(panel.hidden,true));
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden&&!document.querySelector('.page-zoom-panel:not([hidden])')){event.preventDefault();setOpen(false,true,true);}});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();setOpen(false,true,true);}});
   panel.addEventListener('click',event=>{
     const link=event.target.closest('a[href]');if(!link||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.button>0)return;
     const entry=entries.find(entry=>entry.link===link);if(!entry)return;

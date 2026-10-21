@@ -1,7 +1,7 @@
 /* Quiet scale controls share the document outline rail; index controls stay together. */
-.reader-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;align-items:start}.reader-heading h1{grid-column:1;grid-row:1}.reader-heading>.return-index{grid-column:1;justify-self:start}.reader-heading>.page-zoom{grid-column:2;grid-row:1}.index-actions{align-items:center;gap:12px}.page-zoom{display:flex;align-items:center;position:relative;flex-shrink:0;font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--muted)}.page-zoom button{font:inherit;cursor:pointer;color:inherit;border:0;border-radius:0;box-shadow:none;background:transparent;min-height:32px;padding:4px 6px;white-space:nowrap}.page-zoom button:hover{color:var(--link)}.page-zoom button:focus-visible{outline:2px solid var(--link);outline-offset:2px}.page-zoom button:disabled{opacity:.35;cursor:default}.page-zoom-panel{position:absolute;right:0;top:100%;z-index:30;display:flex;align-items:center;gap:5px;padding:5px 8px;background:var(--bg);border:1px solid var(--line);border-radius:6px;white-space:nowrap}.page-zoom-panel[hidden]{display:none}.page-zoom-panel button[data-scale-action="in"],.page-zoom-panel button[data-scale-action="out"]{font-size:20px;min-width:32px}body{touch-action:pan-x pan-y pinch-zoom}body>main,.layout{width:100%;padding-left:clamp(12px,3.4vw,32px);padding-right:clamp(12px,3.4vw,32px)}@media print{body{zoom:1!important}.page-zoom{display:none!important}}
+.reader-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;align-items:start}.reader-heading h1{grid-column:1;grid-row:1}.reader-heading>.return-index{grid-column:1;justify-self:start}.reader-heading>.page-zoom{grid-column:2;grid-row:1}.index-actions{align-items:center;gap:12px}.page-zoom{display:flex;align-items:center;position:relative;flex-shrink:0;font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--muted)}.page-zoom button{font:inherit;cursor:pointer;color:inherit;border:0;border-radius:0;box-shadow:none;background:transparent;min-height:32px;padding:4px 6px;white-space:nowrap}.page-zoom button:hover{color:var(--link)}.page-zoom button:focus-visible{outline:2px solid var(--link);outline-offset:2px}.page-zoom button:disabled{opacity:.35;cursor:default}body{touch-action:pan-x pan-y pinch-zoom}body>main,.layout{width:100%;padding-left:clamp(12px,3.4vw,32px);padding-right:clamp(12px,3.4vw,32px)}@media print{body{zoom:1!important}.page-zoom{display:none!important}}
 
-.page-zoom .page-scale{padding-right:2px}.page-zoom .page-scale-menu{display:grid;place-items:center;min-width:24px;padding:4px}
+.page-zoom .page-scale{padding:4px 2px;min-width:40px;font-variant-numeric:tabular-nums}
 
 :root{--page-gutter:clamp(12px,3.4vw,32px)}
 .layout.has-reader-tools,.index-layout{display:grid;grid-template-columns:120px minmax(0,1fr);gap:32px;max-width:1112px;align-items:start}
@@ -9,7 +9,6 @@
 .index-sidebar{position:sticky;top:24px;align-self:start;min-width:0;z-index:20}.reader-sidebar{z-index:20}
 .toc-toolbar,.index-sidebar .index-actions{display:flex;align-items:center;flex-wrap:nowrap;gap:8px}
 .toc-toolbar>.page-zoom{flex:0 0 auto;order:0}.toc-label{display:none!important}
-.toc-toolbar .page-zoom-panel,.index-sidebar .page-zoom-panel{left:0;right:auto}
 .layout.has-reader-tools.tools-compact,.index-layout.tools-compact{grid-template-columns:minmax(0,1fr);max-width:960px;gap:8px}
 .tools-compact>.reader-sidebar,.tools-compact>.index-sidebar{top:0;background:var(--bg);padding:6px 0;isolation:isolate}
 /* Cover the full gutter and a fractional pixel above the sticky edge at 99% zoom. */
@@ -19,9 +18,9 @@
 
 /* Small state changes only: no page entrance, bounce, or permanent transform. */
 .page-zoom button,.toc-toggle,.tree-toggle,.toc-panel a{transition:color 120ms ease,opacity 120ms ease}
-.page-zoom-panel:not([hidden]){animation:quiet-menu-in 140ms ease-out}
-@keyframes quiet-menu-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.page-zoom-panel:not([hidden]){animation:none}.page-zoom button,.toc-toggle,.tree-toggle,.toc-panel a{transition:none}}
+
+
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.page-zoom button,.toc-toggle,.tree-toggle,.toc-panel a{transition:none}}
 
 /* Equal rails center the content itself; the empty right rail balances tools. */
 .layout.has-toc,.layout.has-reader-tools,.index-layout{--rail:120px;grid-template-columns:calc(var(--rail) * var(--ui-scale,1)) minmax(0,1fr) calc(var(--rail) * var(--ui-scale,1));gap:calc(32px * var(--ui-scale,1));max-width:calc(960px + 2 * (var(--rail) + 32px) * var(--ui-scale,1))}
@@ -36,3 +35,5 @@
 /* Start at the sticky edge, so the toolbar never travels before pinning. */
 .layout.has-reader-tools.tools-compact,.layout.has-toc.toc-compact,.index-layout.tools-compact{padding-top:0}
 .tools-compact>article,.toc-compact>article,.index-layout.tools-compact>main{margin-top:18px}
+
+.page-zoom>[data-scale-action]{min-width:26px;padding:4px;font-size:18px;font-weight:400}.page-zoom{gap:0}

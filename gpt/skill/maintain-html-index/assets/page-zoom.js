@@ -48,10 +48,10 @@
   const steps = [.5, .67, .8, .9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3];
   let scale = 1;
   const ui = document.createElement('div'); ui.className = 'page-zoom';
-  ui.innerHTML = '<button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" class="page-scale-menu" aria-label="调整页面缩放" aria-expanded="false" aria-controls="page-scale-panel" title="调整页面缩放"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></button><div id="page-scale-panel" class="page-zoom-panel" role="group" aria-label="页面缩放" hidden><button type="button" data-scale-action="out" aria-label="缩小页面">−</button><button type="button" data-scale-action="reset" aria-label="恢复页面原始大小">100%</button><button type="button" data-scale-action="in" aria-label="放大页面">+</button></div>';
+  ui.innerHTML = '<button type="button" data-scale-action="out" aria-label="缩小页面" title="缩小">−</button><button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" data-scale-action="in" aria-label="放大页面" title="放大">+</button>';
   // Both surfaces place their navigation control before the scale controls.
   host.append(ui);
-  const reset = ui.querySelector('.page-scale'), trigger = ui.querySelector('.page-scale-menu'), panel = ui.querySelector('.page-zoom-panel');
+  const reset = ui.querySelector('.page-scale');
   const smaller = ui.querySelector('[data-scale-action="out"]'), larger = ui.querySelector('[data-scale-action="in"]');
   function display() {
     const percent = Math.round(scale * 100) + '%';
@@ -81,21 +81,13 @@
   function step(direction) {
     return direction > 0 ? (steps.find(n => n > scale + .001) ?? 3) : ([...steps].reverse().find(n => n < scale - .001) ?? .5);
   }
-  function open(show, focus = false) {
-    panel.hidden = !show; trigger.setAttribute('aria-expanded', String(show));
-    if (focus) trigger.focus({preventScroll:true});
-  }
-  reset.addEventListener('click', () => { setScale(1); open(false); });
-  trigger.addEventListener('click', () => open(panel.hidden));
+  reset.addEventListener('click', () => setScale(1));
   ui.addEventListener('click', event => {
     const action = event.target.closest('[data-scale-action]')?.dataset.scaleAction;
-    if (action) setScale(action === 'reset' ? 1 : step(action === 'in' ? 1 : -1));
+    if (action) setScale(step(action === 'in' ? 1 : -1));
   });
-  document.addEventListener('click', event => { if (!ui.contains(event.target)) open(false); });
-  ui.addEventListener('focusout', event => { if (!ui.contains(event.relatedTarget)) open(false); });
   const editable = target => target?.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"])');
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !panel.hidden) { open(false, true); return; }
     if (!(event.ctrlKey || event.metaKey) || event.altKey || editable(event.target)) return;
     if (!['+', '=', '-', '0'].includes(event.key)) return;
     event.preventDefault();

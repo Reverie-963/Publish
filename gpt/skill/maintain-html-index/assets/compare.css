@@ -1,8 +1,7 @@
-.compare-control{position:relative;flex:0 0 auto}.compare-toggle{display:grid;place-items:center;width:32px;height:32px;padding:6px;color:var(--muted);border:0;background:transparent;cursor:pointer}.compare-toggle:hover{color:var(--link)}.compare-picker{position:absolute;left:0;top:38px;z-index:35;width:min(290px,70vw);padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:6px}.compare-picker[hidden]{display:none}.compare-picker label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.compare-picker select{width:100%;font:13px/1.6 system-ui;color:var(--ink);background:var(--bg);border:0;padding:4px}
-body.is-compare-pane .reader-heading{display:none}body.is-compare-pane .layout{padding-top:0}body.is-compare-pane .compare-control{display:none}
+body.is-compare-pane .reader-heading{display:none}body.is-compare-pane .layout{padding-top:0}
 body.compare-page{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 system-ui}.compare-shell{height:100vh;height:100dvh;display:grid;grid-template-rows:42px minmax(0,1fr)}.compare-top{padding:0 20px;display:flex;align-items:center;justify-content:flex-start}.compare-top a{color:var(--link);text-decoration:none;font-size:13px}.compare-panes{display:grid;gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0}.compare-pane{min-width:0;min-height:0;display:grid;grid-template-rows:40px minmax(0,1fr)}.compare-file{width:100%;min-width:0;border:0;padding:7px 18px;color:var(--ink);background:var(--bg);font:13px system-ui;text-overflow:ellipsis}.compare-pane iframe{width:100%;height:100%;border:0;display:block}.compare-page :is(a,button,select):focus-visible{outline:2px solid var(--link);outline-offset:-2px}.compare-empty{padding:24px;color:var(--muted)}
 @media(max-width:760px){.compare-panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr)}}
-@media print{.compare-control{display:none}}
+
 
 /* The reader owns one pinned row: outline, scale, then file choice. */
 body.is-compare-pane .layout.has-reader-tools{display:block;max-width:960px;padding-top:0}
@@ -14,3 +13,19 @@ body.is-compare-pane article{margin-top:18px}
 .compare-inline-file:focus-visible{outline:2px solid var(--link);outline-offset:2px}
 .compare-pane.reader-ready{grid-template-rows:minmax(0,1fr)}
 .compare-pane.reader-ready>.compare-file{display:none}
+
+/* One quiet rail, switching between the file tree and the document outline. */
+.layout.has-reader-tools.has-quick-access{--rail:210px}
+.quick-toggle{display:grid;place-items:center;flex:0 0 auto;width:32px;height:32px;padding:6px;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--muted);cursor:pointer}
+.quick-toggle:hover,.quick-toggle[aria-expanded="true"]{color:var(--link)}
+.quick-panel{overflow:auto;overscroll-behavior:contain;min-width:0;padding:0 4px 4px 0;font-size:13px;line-height:1.65}
+.quick-panel[hidden]{display:none}.quick-panel ul{list-style:none;padding:0;margin:0}.quick-panel ul ul{margin:5px 0 7px 6px;padding-left:13px;border-left:1px solid var(--line)}
+.quick-panel summary{cursor:pointer;padding:4px 0;color:var(--ink);font-weight:550;overflow-wrap:anywhere}.quick-panel summary::marker{color:var(--link);font-size:10px}
+.quick-panel a{display:block;padding:5px 0;color:var(--muted);overflow-wrap:anywhere;text-decoration:none}.quick-panel a:hover,.quick-panel a[aria-current="page"]{color:var(--link)}.quick-panel a[aria-current="page"]{font-weight:550}
+.quick-hint{font-size:11px;line-height:1.6;color:var(--muted);margin:7px 0 10px;opacity:.8}
+.quick-drop-zones{position:fixed;inset:0;z-index:1000;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;font:13px/1.6 system-ui;color:var(--muted);background:transparent}
+.quick-drop-zones[hidden]{display:none}.quick-drop-zone{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);border-radius:4px;background:color-mix(in srgb,var(--bg) 70%,transparent);transition:background 120ms ease,color 120ms ease}
+.quick-drop-zone.is-over{color:var(--link);border-color:var(--link);background:color-mix(in srgb,var(--link) 8%,var(--bg))}
+.quick-toggle,.quick-panel a{transition:color 120ms ease}
+@media(prefers-reduced-motion:reduce){.quick-drop-zone,.quick-toggle,.quick-panel a{transition:none}}
+@media print{.quick-toggle,.quick-panel,.quick-drop-zones{display:none!important}}
