@@ -37,3 +37,8 @@
 .tools-compact>article,.toc-compact>article,.index-layout.tools-compact>main{margin-top:18px}
 
 .page-zoom>[data-scale-action]{min-width:26px;padding:4px;font-size:18px;font-weight:400}.page-zoom{gap:0}
+
+/* Transient reader control; a sibling of body so content zoom cannot scale it. */
+.page-zoom-floating{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));z-index:100;gap:4px;padding:4px 10px;border-radius:8px;background:var(--bg);box-shadow:0 2px 14px #0000000d;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,6px);transition:opacity 160ms ease,transform 160ms ease,visibility 160ms;}
+.page-zoom-floating.is-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){.page-zoom-floating{transition:none;transform:translate(-50%,0)}}

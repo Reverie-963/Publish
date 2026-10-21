@@ -49,8 +49,25 @@
   let scale = 1;
   const ui = document.createElement('div'); ui.className = 'page-zoom';
   ui.innerHTML = '<button type="button" data-scale-action="out" aria-label="缩小页面" title="缩小">−</button><button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" data-scale-action="in" aria-label="放大页面" title="放大">+</button>';
-  // Both surfaces place their navigation control before the scale controls.
-  host.append(ui);
+  const floating=host.classList.contains('toc-toolbar');
+  let hideTimer,hovered=false;
+  function hideZoom(){clearTimeout(hideTimer);hovered=false;ui.classList.remove('is-visible');ui.inert=true;ui.setAttribute('aria-hidden','true');}
+  function scheduleHide(){
+    clearTimeout(hideTimer);
+    if(!floating||hovered||ui.contains(document.activeElement))return;
+    hideTimer=setTimeout(hideZoom,3000);
+  }
+  function showZoom(){if(!floating)return;ui.classList.add('is-visible');ui.inert=false;ui.removeAttribute('aria-hidden');scheduleHide();}
+  if(floating){
+    ui.classList.add('page-zoom-floating');ui.setAttribute('role','group');ui.setAttribute('aria-label','页面缩放');
+    // Outside the scaled body: the transient controls keep their normal size.
+    document.documentElement.append(ui);hideZoom();
+    ui.addEventListener('pointerenter',()=>{hovered=true;clearTimeout(hideTimer);});
+    ui.addEventListener('pointerleave',()=>{hovered=false;scheduleHide();});
+    ui.addEventListener('focusin',()=>clearTimeout(hideTimer));
+    ui.addEventListener('focusout',()=>queueMicrotask(scheduleHide));
+    window.addEventListener('pagehide',hideZoom);
+  }else host.append(ui);
   const reset = ui.querySelector('.page-scale');
   const smaller = ui.querySelector('[data-scale-action="out"]'), larger = ui.querySelector('[data-scale-action="in"]');
   function display() {
@@ -58,15 +75,16 @@
     reset.textContent = percent; reset.setAttribute('aria-label', '当前缩放 ' + percent + '，恢复原始大小');
     smaller.disabled = scale <= .5; larger.disabled = scale >= 3;
   }
-  function setScale(value, point, remember = true) {
+  function setScale(value, point, remember = true, announce = remember) {
     const next = Math.min(3, Math.max(.5, value));
     if (!Number.isFinite(next)) return;
     const x = point?.x ?? innerWidth / 2, y = point?.y ?? innerHeight / 2;
     let anchor = document.elementFromPoint?.(x, y);
-    if (anchor?.closest('.reader-sidebar,.index-sidebar') || anchor === document.body || anchor === document.documentElement) anchor = null;
+    if (anchor?.closest('.reader-sidebar,.index-sidebar,.page-zoom') || anchor === document.body || anchor === document.documentElement) anchor = null;
     const before = anchor?.getBoundingClientRect(), oldScroll = window.scrollY, ratio = next / scale;
     document.body.style.zoom = String(next); scale = next; display();
     document.dispatchEvent(new CustomEvent('page-scalechange'));
+    if(announce)showZoom();
     if (remember) {
       // Restore the point under the pointer after layout reflows at the new scale.
       const after = anchor?.getBoundingClientRect();
@@ -103,7 +121,7 @@
     for (const store of stores) {
       try {
         const value = Number(store.getItem(storageKey));
-        if (value >= .5 && value <= 3) { if (value !== scale) setScale(value, null, keepPlace); break; }
+        if (value >= .5 && value <= 3) { if (value !== scale) setScale(value, null, keepPlace, false); break; }
       } catch (_) {}
     }
   }

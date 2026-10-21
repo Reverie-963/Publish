@@ -3,20 +3,32 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),path=require('path'),assert=requ
 const root=path.resolve(process.argv[2]),asset=path.join(root,'.file-index/assets');
 const read=n=>fs.readFileSync(path.join(asset,n),'utf8'),manifest=JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json')));
 const records=manifest.files.filter(r=>!r.external&&r.status==='preview');assert(records.length>=3);
-const doc=records.find(r=>r.type==='md'),other=records.find(r=>r.type==='doc'),third=records.find(r=>r.type==='pdf');
+const doc=records.find(r=>r.type==='md'&&r.path.includes('/')),other=records.find(r=>r.type==='doc'),third=records.find(r=>r.type==='pdf');
 const urlFor=relative=>new URL(relative,'file://'+root+'/').href;
-function load(relative,query=''){
+function load(relative,query='',store){
  const d=new JSDOM(fs.readFileSync(path.join(root,decodeURIComponent(relative)),'utf8'),{url:urlFor(relative)+query,runScripts:'outside-only',pretendToBeVisual:true});d.window.scrollTo=()=>{};
+ if(store)Object.defineProperty(d.window,'localStorage',{value:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)}});
  d.window.eval(read('file-catalog.js'));return d;
 }
 (async()=>{
- const reader=load(doc.preview);reader.window.eval(read('reader.js'));reader.window.eval(read('page-zoom.js'));reader.window.__navigations=[];reader.window.__navigate=url=>reader.window.__navigations.push(url);reader.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
+ const preferences=new Map(),reader=load(doc.preview,'',preferences);reader.window.eval(read('reader.js'));reader.window.eval(read('page-zoom.js'));reader.window.__navigations=[];reader.window.__navigate=url=>reader.window.__navigations.push(url);reader.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
  const rd=reader.window.document,quick=rd.querySelector('.quick-toggle'),outline=rd.querySelector('.toc-toggle'),tree=rd.querySelector('.quick-panel');
  assert(quick&&outline&&tree.hidden);assert.equal(quick.parentElement.firstElementChild,quick);
- assert.deepEqual([...quick.parentElement.children].filter(e=>!e.classList.contains('toc-label')).map(e=>e.className),['quick-toggle','toc-toggle','page-zoom']);
+ assert.deepEqual([...quick.parentElement.children].filter(e=>!e.classList.contains('toc-label')).map(e=>e.className),['quick-toggle','toc-toggle','quick-actions']);
  outline.click();assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();assert(!tree.hidden);assert.equal(outline.getAttribute('aria-expanded'),'false');
  assert.equal(tree.querySelectorAll('a').length,manifest.files.filter(r=>!r.external).length);assert.equal(tree.querySelector('[aria-current="page"]').dataset.fileId,doc.id);assert(tree.querySelector('details summary'));
- outline.click();assert(tree.hidden);assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();
+ const locate=rd.querySelector('.quick-locate'),expand=rd.querySelector('.quick-expand'),current=tree.querySelector('[aria-current="page"]');
+ assert.equal(locate.getAttribute('aria-pressed'),'true');assert(current.closest('details').open);
+ expand.click();assert([...tree.querySelectorAll('details')].every(d=>!d.open));assert.equal(expand.title,'全部展开');
+ expand.click();assert([...tree.querySelectorAll('details')].every(d=>d.open));assert.equal(expand.title,'全部收起');
+ // Auto reveal opens only the current path, on entry; it never fights manual collapse.
+ expand.click();locate.click();quick.click();quick.click();assert(!current.closest('details').open);
+ locate.click();assert(current.closest('details').open);assert.equal(locate.getAttribute('aria-pressed'),'true');
+ assert([...tree.querySelectorAll('details')].filter(d=>d.open).every(d=>d.contains(current)));
+ await new Promise(r=>reader.window.requestAnimationFrame(r));let listScroll=0;Object.defineProperty(tree,'scrollTop',{get:()=>listScroll,set:v=>listScroll=v,configurable:true});
+ tree.getBoundingClientRect=()=>({top:80,bottom:280});current.getBoundingClientRect=()=>({top:430,bottom:450});
+ locate.click();locate.click();await new Promise(r=>reader.window.requestAnimationFrame(r));assert.equal(listScroll,170,'reveal scrolls the tree only');
+ outline.click();assert(tree.hidden);assert(rd.querySelector('.quick-actions').hidden);assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();
  tree.dispatchEvent(new reader.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert(tree.hidden);assert.equal(rd.activeElement,quick);
  // Drag targets appear only during a file drag; malformed drops never navigate.
  quick.click();const file=tree.querySelector('a[data-file-id="'+other.id+'"]'),data={};
@@ -30,7 +42,13 @@ function load(relative,query=''){
   const destination=new URL(reader.window.__navigations.at(-1)),params=new URLSearchParams(destination.hash.slice(1));
   assert(destination.pathname.endsWith('/.file-index/compare.html'));assert.equal(params.get(side),other.id);assert.equal(params.get(side==='left'?'right':'left'),doc.id);
  }
- drag('dragstart',file);drag('dragend',file);assert(zones.hidden);reader.window.close();
+ drag('dragstart',file);drag('dragend',file);assert(zones.hidden);
+ locate.click();if([...tree.querySelectorAll('details')].some(d=>d.open))expand.click();await new Promise(r=>reader.window.setTimeout(r,20));
+ reader.window.close();
+ const restored=load(doc.preview,'',preferences);restored.window.eval(read('reader.js'));restored.window.eval(read('page-zoom.js'));restored.window.eval(read('compare.js'));
+ const restoredDoc=restored.window.document;assert.equal(restoredDoc.querySelector('.quick-locate').getAttribute('aria-pressed'),'false');
+ assert(!restoredDoc.querySelector('.quick-panel').hidden);assert([...restoredDoc.querySelectorAll('.quick-panel details')].every(d=>!d.open));
+ restoredDoc.querySelector('.quick-locate').click();assert(restoredDoc.querySelector('.quick-panel [aria-current="page"]').closest('details').open);restored.window.close();
  const pane=load(doc.preview,'?compare-pane=1');pane.window.eval(read('reader.js'));pane.window.eval(read('page-zoom.js'));pane.window.eval(read('compare.js'));assert(pane.window.document.body.classList.contains('is-compare-pane'));assert(!pane.window.document.querySelector('.quick-drop-zones'));pane.window.close();
  const pair=load('.file-index/compare.html','#left='+doc.id+'&right='+other.id);pair.window.eval(read('compare.js'));
  const d=pair.window.document,frames=[...d.querySelectorAll('iframe')],selects=[...d.querySelectorAll('.compare-file')];
@@ -52,7 +70,7 @@ function load(relative,query=''){
  Object.defineProperty(child.window,'parent',{value:parent});
  child.window.eval(read('reader.js'));child.window.eval(read('page-zoom.js'));child.window.eval(read('compare.js'));
  const toolbar=child.window.document.querySelector('.toc-toolbar'),choice=toolbar.querySelector('.compare-inline-file');assert(choice);
- assert(toolbar.querySelector('.page-zoom'));assert(toolbar.querySelector('.toc-toggle'));
+ assert(child.window.document.documentElement.querySelector(':scope > .page-zoom-floating'));assert(toolbar.querySelector('.toc-toggle'));
  assert.equal(choice.value,doc.id);assert(sent.some(m=>m.type==='ready'&&m.id===doc.id));
  child.window.dispatchEvent(new child.window.MessageEvent('message',{source:parent,data:{channel,type:'peer',id:other.id}}));
  assert([...choice.options].find(o=>o.value===other.id).disabled);
@@ -62,7 +80,7 @@ function load(relative,query=''){
  const quickChild=toolbar.querySelector('.quick-toggle');assert(quickChild);quickChild.click();
  const childFile=child.window.document.querySelector('.quick-panel a[data-file-id="'+third.id+'"]');childFile.click();assert.equal(sent.at(-1).type,'select');assert.equal(sent.at(-1).next,third.id);
  childFile.dispatchEvent(new child.window.KeyboardEvent('keydown',{key:'Enter',altKey:true,bubbles:true,cancelable:true}));assert.equal(sent.at(-1).type,'place');assert.equal(sent.at(-1).side,'left');
- const reset=toolbar.querySelector('.page-scale');reset.click();assert.equal(reset.textContent,'100%');
+ const reset=child.window.document.querySelector('.page-scale');reset.click();assert.equal(reset.textContent,'100%');
  child.window.close();
  pair.window.close();
  console.log('PASS: offline catalog, file tree and sidebar modes, independent file selection, valid return link, drag targets and keyboard placement, invalid IDs confined to catalog, unified pinned toolbar and validated frame messages (DOM simulation).');

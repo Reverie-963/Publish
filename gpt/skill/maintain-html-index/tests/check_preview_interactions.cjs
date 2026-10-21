@@ -34,7 +34,7 @@ try{
  const cases=[fs.readFileSync(path.join(root,'00 - 文件索引.html'),'utf8'),content(records.find(r=>r.type==='pdf')),content(records.find(r=>r.type==='py')),fs.readFileSync(path.join(root,decodeURIComponent(JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).directories[0].preview)),'utf8')];
  for(const html of cases){
   const {w,doc,key}=setup(html),reset=doc.querySelector('.page-scale');
-  assert(!doc.querySelector('.page-scale-menu,.page-zoom-panel'));assert.deepEqual([...reset.parentElement.children].map(n=>n.dataset.scaleAction||'reset'),['out','reset','in']);if(doc.querySelector('.tree')){assert(doc.querySelector('.index-layout > .index-sidebar > .index-actions'));assert(!doc.querySelector('header .index-actions'));assert(doc.querySelector('.index-layout > main .tree'));}if(doc.querySelector('.layout')){assert(doc.querySelector('.reader-sidebar .page-zoom'));assert(!doc.querySelector('.reader-heading .page-zoom'));}assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
+  assert(!doc.querySelector('.page-scale-menu,.page-zoom-panel'));assert.deepEqual([...reset.parentElement.children].map(n=>n.dataset.scaleAction||'reset'),['out','reset','in']);if(doc.querySelector('.tree')){assert(doc.querySelector('.index-layout > .index-sidebar > .index-actions'));assert(!doc.querySelector('header .index-actions'));assert(doc.querySelector('.index-layout > main .tree'));}if(doc.querySelector('.layout')){assert(doc.querySelector('html > .page-zoom-floating'));assert(!doc.querySelector('.reader-sidebar .page-zoom'));assert(!doc.querySelector('.reader-heading .page-zoom'));}assert(!doc.querySelector('dialog,script[src$="image-zoom.js"]'));
   const act=name=>doc.querySelector('[data-scale-action="'+name+'"]').click();
   act('in');assert.equal(doc.body.style.zoom,'1.1');assert.equal(w.localStorage.getItem(key),'1.1');assert.equal(reset.textContent,'110%');w.localStorage.setItem(key,'1.25');w.dispatchEvent(new w.Event('pageshow'));assert.equal(doc.body.style.zoom,'1.25');
   reset.click();assert.equal(doc.body.style.zoom,'1');assert(!doc.querySelector('.page-zoom-panel'),'one click resets without a menu');assert.equal(reset.textContent,'100%');
@@ -52,7 +52,7 @@ try{
   const portrait=setup(html,.99);Object.defineProperty(portrait.w,'innerWidth',{value:600,configurable:true});portrait.w.dispatchEvent(new portrait.w.Event('resize'));
   const side=portrait.doc.querySelector('.reader-sidebar,.index-sidebar'),bar=side.querySelector('.toc-toolbar,.index-actions');
   assert.equal(portrait.w.getComputedStyle(side).top,'0px','portrait sticky strip has no top gap');assert.equal(portrait.w.getComputedStyle(side).backgroundColor,portrait.w.getComputedStyle(portrait.doc.body).backgroundColor);
-  assert.equal(portrait.w.getComputedStyle(bar).flexWrap,'nowrap');assert.equal(portrait.w.getComputedStyle(bar.querySelector('.page-zoom')).flexBasis,'auto');
+  assert.equal(portrait.w.getComputedStyle(bar).flexWrap,'nowrap');if(bar.querySelector('.page-zoom'))assert.equal(portrait.w.getComputedStyle(bar.querySelector('.page-zoom')).flexBasis,'auto');else assert.equal(portrait.w.getComputedStyle(portrait.doc.querySelector('.page-zoom-floating')).position,'fixed');
   // App zoom cancels at the rail only, on every surface and after restoration.
   for(const scale of [.5,.99,1,1.5,2.9,3]){
    const fixed=setup(html,scale),rail=fixed.doc.querySelector('.reader-sidebar,.index-sidebar');

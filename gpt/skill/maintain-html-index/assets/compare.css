@@ -3,7 +3,7 @@ body.compare-page{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 s
 @media(max-width:760px){.compare-panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr)}}
 
 
-/* The reader owns one pinned row: outline, scale, then file choice. */
+/* The reader owns one pinned row for navigation and file choice. */
 body.is-compare-pane .layout.has-reader-tools{display:block;max-width:960px;padding-top:0}
 body.is-compare-pane .reader-sidebar{top:0!important;background:var(--bg);padding:6px 0;isolation:isolate}
 body.is-compare-pane .toc-toolbar{margin-bottom:0;min-width:0}
@@ -29,3 +29,12 @@ body.is-compare-pane article{margin-top:18px}
 .quick-toggle,.quick-panel a{transition:color 120ms ease}
 @media(prefers-reduced-motion:reduce){.quick-drop-zone,.quick-toggle,.quick-panel a{transition:none}}
 @media print{.quick-toggle,.quick-panel,.quick-drop-zones{display:none!important}}
+
+.quick-actions{display:flex;align-items:center;gap:2px}.quick-actions[hidden]{display:none}
+.quick-actions button{display:grid;place-items:center;flex:0 0 auto;width:28px;height:32px;padding:4px;border:0;border-radius:4px;background:transparent;box-shadow:none;color:var(--muted);cursor:pointer;transition:color 120ms ease,background 120ms ease}
+.quick-actions button:hover{color:var(--link)}.quick-actions button:disabled{opacity:.35;cursor:default}
+.quick-locate[aria-pressed="true"]{background:color-mix(in srgb,var(--muted) 9%,transparent)}
+.quick-expand[data-action="expand"] .quick-chevron-top{transform:translateY(18px) scaleY(-1)}
+.quick-expand[data-action="expand"] .quick-chevron-bottom{transform:translateY(30px) scaleY(-1)}
+@media(prefers-reduced-motion:reduce){.quick-actions button{transition:none}}
+@media print{.quick-actions{display:none!important}}

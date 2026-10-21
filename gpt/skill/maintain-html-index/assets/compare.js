@@ -31,13 +31,34 @@
   const key='file-index:quick-access:v1:'+root.href;
   const read=()=>{try{return JSON.parse(localStorage.getItem(key))||{};}catch(_){return {};}};
   const write=patch=>{try{localStorage.setItem(key,JSON.stringify({...read(),...patch}));}catch(_){}};
-  const state=read(),tree=new Map();
+  const state=read(),tree=new Map();let autoReveal=state.autoReveal!==false;
+  const controls=document.createElement('div');controls.className='quick-actions';controls.hidden=true;
+  const locate=document.createElement('button'),expand=document.createElement('button');
+  const icon=paths=>'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths+'</svg>';
+  locate.type=expand.type='button';locate.className='quick-locate';expand.className='quick-expand';
+  locate.setAttribute('aria-label','自动定位当前文件');locate.setAttribute('aria-pressed',String(autoReveal));
+  locate.title='自动定位当前文件';locate.innerHTML=icon('<path d="M4 3h16M4 21h16"/><rect x="4" y="7" width="16" height="10" rx="1.5"/>');
+  expand.innerHTML=icon('<path class="quick-chevron-top" d="m7 7 5 4 5-4"/><path class="quick-chevron-bottom" d="m7 17 5-4 5 4"/>');
+  controls.append(locate,expand);(outlineToggle||toggle).after(controls);
+  function syncExpand(){const branches=[...panel.querySelectorAll('details')],any=branches.some(d=>d.open);expand.disabled=!branches.length;expand.dataset.action=any?'collapse':'expand';expand.title=any?'全部收起':'全部展开';expand.setAttribute('aria-label',expand.title);}
+  function reveal(){
+   const link=panel.querySelector('[aria-current="page"]');if(!link)return;
+   for(let node=link.parentElement;node&&node!==panel;node=node.parentElement)if(node.tagName==='DETAILS')node.open=true;
+   syncExpand();
+   requestAnimationFrame(()=>{if(panel.hidden)return;const item=link.getBoundingClientRect(),box=panel.getBoundingClientRect();
+    // Scroll this list only, never the document or its containing frame.
+    if(item.top<box.top)panel.scrollTop+=item.top-box.top;
+    else if(item.bottom>box.bottom)panel.scrollTop+=item.bottom-box.bottom;
+   });
+  }
+  locate.addEventListener('click',()=>{autoReveal=!autoReveal;locate.setAttribute('aria-pressed',String(autoReveal));write({autoReveal});if(autoReveal)reveal();});
+  expand.addEventListener('click',()=>{const branches=[...panel.querySelectorAll('details')],show=!branches.some(d=>d.open);for(const branch of branches)branch.open=show;syncExpand();});
   for(const file of files){const parts=file.label.split('/'),name=parts.pop();let branch=tree;for(const part of parts){if(!branch.has(part))branch.set(part,{children:new Map()});const item=branch.get(part);if(!item.children)item.children=new Map();branch=item.children;}branch.set(name,{...branch.get(name),file});}
   function render(branch,prefix=''){
    const ul=document.createElement('ul');
    for(const [name,item] of branch){const li=document.createElement('li');ul.append(li);const path=prefix+name;
-    if(item.children){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=name;details.dataset.path=path;details.open=state.folders?.[path]??current.label.startsWith(path+'/');details.append(summary,render(item.children,path+'/'));li.append(details);
-     details.addEventListener('toggle',()=>{const folders={...read().folders,[path]:details.open};write({folders});});
+    if(item.children){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=name;details.dataset.path=path;details.open=state.folders?.[path]??(autoReveal&&current.label.startsWith(path+'/'));details.append(summary,render(item.children,path+'/'));li.append(details);
+     details.addEventListener('toggle',()=>{const folders={...read().folders,[path]:details.open};write({folders});syncExpand();});
     }
     if(item.file){const file=item.file,a=document.createElement('a');a.href=urlFor(file).href;a.textContent=name;a.draggable=true;a.dataset.fileId=file.id;a.title=file.label+' · Shift+Enter 右侧对照 · Alt+Enter 左侧对照';if(file.id===current.id)a.setAttribute('aria-current','page');li.append(a);
      a.addEventListener('click',e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;if(actions.switchFile){e.preventDefault();actions.switchFile(file.id);}});
@@ -48,11 +69,12 @@
    }
    return ul;
   }
-  panel.append(render(tree));
+  panel.append(render(tree));syncExpand();
   function open(show,remember=true){
    if(show&&outlineToggle?.getAttribute('aria-expanded')==='true')outlineToggle.click();
-   panel.hidden=!show;panel.inert=!show;document.body.classList.toggle('quick-open',show);toggle.setAttribute('aria-expanded',String(show));
+   panel.hidden=!show;panel.inert=!show;controls.hidden=!show;document.body.classList.toggle('quick-open',show);toggle.setAttribute('aria-expanded',String(show));
    if(remember)write({mode:show?'quick':'closed'});
+   if(show&&autoReveal)reveal();
   }
   toggle.addEventListener('click',()=>open(panel.hidden));
   outlineToggle?.addEventListener('click',()=>{open(false,false);write({mode:outlineToggle.getAttribute('aria-expanded')==='true'?'closed':'outline'});},true);
