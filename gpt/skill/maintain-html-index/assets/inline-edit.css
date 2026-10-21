@@ -1,0 +1,1 @@
+[data-edit-block]{cursor:text;min-height:1.2em}[data-edit-block].editing{white-space:pre-wrap;outline:0;box-shadow:none;background:transparent;overflow-wrap:anywhere}[data-edit-block].editing:focus{outline:0}.edit-status{font-size:12px;color:var(--muted);margin-left:14px;font-weight:400}.edit-status[data-error="true"]{color:#b34d36}[data-edit-block]:empty::after{content:'\200b'}
