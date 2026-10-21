@@ -2,6 +2,7 @@
 """Portable offline file index; source files are never rewritten."""
 import argparse, csv, hashlib, html, json, os, re, shutil, subprocess, tempfile, zipfile
 from pathlib import Path
+from html_outline import html_preview
 from urllib.parse import quote, urlparse, unquote
 
 MARKER='<!-- codex-folder-index v2 -->'
@@ -46,9 +47,35 @@ def page(title,body,out,root,index):
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
 
-def pdf_preview(pdf,out,max_pages):
+def outline(entries):
+ # Entries are (target id, label, depth); omit navigation with no useful choice.
+ if len(entries)<2:return ''
+ links=''.join('<a href="#'+ESC(target,quote=True)+'" style="margin-left:'+str(min(depth,6)*12)+'px">'+ESC(label)+'</a>' for target,label,depth in entries)
+ return '<button class="toc-toggle" aria-expanded="false" aria-controls="reader-toc">目录</button><aside class="toc-panel" id="reader-toc" inert><nav class="toc" aria-label="文稿目录">'+links+'</nav></aside>'
+
+def pdf_outline(reader,limit,prefix='page'):
+ entries=[]
+ def visit(items,depth=0):
+  for item in items:
+   if isinstance(item,list):visit(item,depth+1);continue
+   try:
+    n=reader.get_destination_page_number(item)
+    label=str(item.title).strip()
+    if n is not None and 0<=n<limit and label:entries.append((prefix+'-'+str(n+1),label,depth))
+   except (ValueError,TypeError,KeyError,AttributeError):continue
+ try:visit(reader.outline)
+ except (ValueError,TypeError,KeyError):pass
+ # Keep page navigation as well: bookmarks may only cover some pages.
+ pages=[(prefix+'-'+str(i+1),'第 '+str(i+1)+' 页',0) for i in range(limit)]
+ return [(target,' / '.join(label for t,label,d in entries if t==target) or fallback,min([d for t,label,d in entries if t==target] or [0])) for target,fallback,depth in pages]
+
+def image_dimensions(path):
+ from PIL import Image
+ with Image.open(path) as image:return ' width="'+str(image.width)+'" height="'+str(image.height)+'"'
+
+def pdf_preview(pdf,out,max_pages,with_outline=True):
  from pypdf import PdfReader
- count=len(PdfReader(str(pdf)).pages)
+ reader=PdfReader(str(pdf));count=len(reader.pages)
  if count==0:raise RuntimeError('PDF 没有页面')
  cmd=shutil.which('pdftoppm')
  if not cmd:raise RuntimeError('缺少 pdftoppm，无法制作保留版面的页面预览')
@@ -56,10 +83,10 @@ def pdf_preview(pdf,out,max_pages):
  command([cmd,'-f','1','-l',str(min(count,max_pages)),'-scale-to','1500','-png',pdf,out.parent/'page'],180)
  images=sorted(out.parent.glob('page-*.png'),key=lambda p:natural(p.name))
  if len(images)!=min(count,max_pages):raise RuntimeError('PDF 页面转换数量不完整')
- body=''.join('<figure class="page"><img loading="lazy" src="'+rel(out,p)+'" alt="第 '+str(i+1)+' 页"><figcaption>'+str(i+1)+' / '+str(count)+'</figcaption></figure>' for i,p in enumerate(images))
+ body=''.join('<figure class="page" id="page-'+str(i+1)+'"><img'+image_dimensions(p)+' loading="lazy" src="'+rel(out,p)+'" alt="第 '+str(i+1)+' 页"><figcaption>'+str(i+1)+' / '+str(count)+'</figcaption></figure>' for i,p in enumerate(images))
  notes=[]
  if count>max_pages:notes.append(f'共 {count} 页，仅预览前 {max_pages} 页；完整内容请打开原件。')
- return body,notes
+ return (outline(pdf_outline(reader,len(images))) if with_outline else '')+body,notes
 
 def office_pdf(src,out):
  ext=src.suffix.lower()
@@ -113,7 +140,7 @@ def workbook(src,out,max_cells):
    rows.append('<tr>'+''.join(cells)+'</tr>')
   if ws._charts or ws._images:notes.append(f'工作表「{ws.title}」含图表或图片，下方提供版面预览。')
   sections.append('<section class="sheet" id="sheet-'+str(i)+'"><h2>'+ESC(ws.title)+'</h2><div class="scroll"><table>'+''.join(rows)+'</table></div></section>')
- nav='<nav class="sheet-nav">'+''.join('<a href="#sheet-'+str(i)+'">'+ESC(ws.title)+'</a>' for i,ws in enumerate(wb.worksheets))+'</nav>'
+ nav=outline([('sheet-'+str(i),ws.title,0) for i,ws in enumerate(wb.worksheets)]+([('print-layout','图表与打印版面',0)] if any('图表或图片' in n for n in notes) else []))
  wb.close();cached.close()
  if formulas:notes.append('部分公式没有已保存的计算结果，显示公式本身；表格视图不会重新计算。')
  return nav+''.join(sections),notes
@@ -130,7 +157,7 @@ def render(src,out,args,mapping):
  elif ext in {'.xlsx','.xlsm'}:
   body,notes=workbook(src,out,args.max_cells)
   if any('图表或图片' in s for s in notes):
-   pdf=office_pdf(src,out);snap,extra=pdf_preview(pdf,out,args.max_pages);body+='<details><summary>查看图表与打印版面</summary>'+snap+'</details>';notes+=extra
+   pdf=office_pdf(src,out);snap,extra=pdf_preview(pdf,out,args.max_pages,with_outline=False);body+='<details id="print-layout"><summary>查看图表与打印版面</summary>'+snap+'</details>';notes+=extra
  elif ext in {'.csv','.tsv'}:
   if src.stat().st_size>args.max_text_bytes:raise RuntimeError('文本表格超出预览大小上限')
   with src.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.reader(f,delimiter='\t' if ext=='.tsv' else ','))
@@ -144,14 +171,14 @@ def render(src,out,args,mapping):
     pages=[]
     for i,fr in enumerate(ImageSequence.Iterator(im)):
      if i>=args.max_pages:notes.append('图片页数超出上限，仅预览前部分页面。');break
-     p=out.parent/f'image-{i}.png';fr.convert('RGB').save(p);pages.append('<img loading="lazy" src="'+rel(out,p)+'" alt="第 '+str(i+1)+' 页">')
-    body='<div class="media-frame">'+''.join(pages)+'</div>'
+     p=out.parent/f'image-{i}.png';fr.convert('RGB').save(p);pages.append('<img id="image-'+str(i+1)+'"'+image_dimensions(p)+' loading="lazy" src="'+rel(out,p)+'" alt="第 '+str(i+1)+' 页">')
+    body=outline([('image-'+str(i+1),'第 '+str(i+1)+' 页',0) for i in range(len(pages))])+'<div class="media-frame">'+''.join(pages)+'</div>'
   else:body='<div class="media-frame"><img src="'+rel(out,target)+'" alt="'+ESC(src.name,quote=True)+'"></div>'
  elif ext in AUDIO|VIDEO:
   tag='audio' if ext in AUDIO else 'video';body='<'+tag+' controls preload="metadata" src="'+rel(out,src)+'"></'+tag+'>'
   notes.append('播放能力取决于浏览器对该文件编码的支持；无法播放时请打开原件。')
  elif ext in {'.html','.htm'}:
-  body='<iframe title="HTML 原件预览" class="embedded" sandbox="" src="'+rel(out,src)+'"></iframe>'
+  body=html_preview(src,out,args.max_text_bytes)
   notes.append('HTML 在受限预览中显示；脚本及提交操作未启用。')
  elif ext=='.zip':
   with zipfile.ZipFile(src) as z:rows=[['文件','大小（字节）']]+[[f.filename,f.file_size] for f in z.infolist()]
@@ -199,7 +226,7 @@ def main():
    sources.append(f)
  mapping={str(f):str(work/'previews'/hashlib.sha256(str(f.relative_to(root)).encode()).hexdigest()[:16]/'preview.html') for f in sources}
  for directory in directories:mapping[str(root/directory)]=str(work/'folders'/hashlib.sha256(directory.encode()).hexdigest()[:16]/'index.html')
- version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/highlight_code.cjs','package-lock.json','assets/reader.css','assets/preview.css','assets/code.css','assets/scrollbar.css','assets/page-zoom.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
+ version=hashlib.sha256((''.join(digest(SKILL/x) for x in ['scripts/build_folder_index.py','scripts/render_markdown.cjs','scripts/highlight_code.cjs','scripts/html_outline.py','package-lock.json','assets/reader.css','assets/preview.css','assets/code.css','assets/scrollbar.css','assets/page-zoom.css'])+str((args.name,args.max_pages,args.max_cells,args.max_text_bytes))).encode()).hexdigest()
  links_hash=hashlib.sha256(json.dumps(sorted([str(f.relative_to(root)) for f in sources]+directories)).encode()).hexdigest()
  records=[];reused=0
  for src in sources:

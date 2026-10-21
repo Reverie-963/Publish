@@ -3,8 +3,8 @@
   const toggle = document.querySelector('.toc-toggle'), panel = document.querySelector('.toc-panel');
   const layout = document.querySelector('.layout');
   if (!toggle || !panel || !layout) return;
-  const entries = Array.from(panel.querySelectorAll('a[href^="#"]')).map(link => {
-    try { return {link,target:document.getElementById(decodeURIComponent(link.hash.slice(1)))}; } catch (_) { return {link,target:null}; }
+  const entries = Array.from(panel.querySelectorAll('a[href]')).map(link => {
+    try { return {link,target:document.getElementById(link.dataset.frame||decodeURIComponent(link.hash.slice(1)))}; } catch (_) { return {link,target:null}; }
   }).filter(entry => entry.target);
   if (entries.length <= 1) { toggle.remove(); panel.remove(); return; }
   const sidebar=document.createElement('div');sidebar.className='reader-sidebar';
@@ -17,14 +17,14 @@
   const storageKey='file-index:outline:v2:'+(script?new URL('.',script).href:location.pathname);
   const stores=[];
   for(const name of ['localStorage','sessionStorage']){try{const store=window[name];store.getItem(storageKey);stores.push(store);}catch(_){}}
-  let compact=null,active=null,frame=0;
+  let compact=null,active=null,frame=0,selectedFrameLink=null;
   const zoom=()=>Number(document.body.style.zoom)||1;
-  function currentHeading(){let target=entries[0].target;for(const entry of entries)if(entry.target.getBoundingClientRect().top<=(compact?64:48)*zoom())target=entry.target;return target;}
+  function currentHeading(){let target=entries[0].target;for(const entry of entries)if(!entry.target.closest('details:not([open])')&&entry.target.getBoundingClientRect().top<=(compact?64:48)*zoom())target=entry.target;return target;}
   function markCurrent(target,reveal=false){
     const changed=active!==target;active=target;
-    entries.forEach(entry=>{if(entry.target===target)entry.link.setAttribute('aria-current','location');else entry.link.removeAttribute('aria-current');});
+    entries.forEach(entry=>{if(entry.target===target&&(!entry.link.dataset.frame||entry.link===(selectedFrameLink||entries[0].link)))entry.link.setAttribute('aria-current','location');else entry.link.removeAttribute('aria-current');});
     if(panel.hidden||(!changed&&!reveal))return;
-    const link=entries.find(entry=>entry.target===target)?.link;if(!link)return;
+    const link=panel.querySelector('a[aria-current]');if(!link)return;
     const box=panel.getBoundingClientRect(),item=link.getBoundingClientRect();
     if(item.top<box.top)panel.scrollTop+=(item.top-box.top)/zoom();
     else if(item.bottom>box.bottom)panel.scrollTop+=(item.bottom-box.bottom)/zoom();
@@ -52,8 +52,10 @@
   toggle.addEventListener('click',()=>setOpen(panel.hidden,true));
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden&&!document.querySelector('.page-zoom-panel:not([hidden])')){event.preventDefault();setOpen(false,true,true);}});
   panel.addEventListener('click',event=>{
-    const link=event.target.closest('a[href^="#"]');if(!link||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.button>0)return;
+    const link=event.target.closest('a[href]');if(!link||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.button>0)return;
     const entry=entries.find(entry=>entry.link===link);if(!entry)return;
+    if(link.dataset.frame){selectedFrameLink=link;markCurrent(entry.target);return;}
+    for(let parent=entry.target;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
     markCurrent(entry.target);entry.target.setAttribute('tabindex','-1');entry.target.focus({preventScroll:true});
     // Native anchor scrolling and history; the outline remains open.
   });
