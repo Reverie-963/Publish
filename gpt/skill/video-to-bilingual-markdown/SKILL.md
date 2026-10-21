@@ -89,7 +89,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/video-to-bilingual-markdown/scripts/
   --min-screens 1
 ```
 
-Before delivery, call [maintain-html-index](../maintain-html-index/SKILL.md) once with the video, both reviewed manuscripts, source/counterpart links, verified online/subtitle links and existing order. Enable `--include-originals` so both languages appear. That skill owns HTML locations and navigation: new previews stay in `.file-index/`, with legacy sibling HTML maintained only when required for existing links. Deliver its live local entry with editing/sync by default and retain the offline fallback. Do not create wrapper folders or a separate translation index.
+Before delivery, call [maintain-html-index](../maintain-html-index/SKILL.md) once with the video, both reviewed manuscripts, source/counterpart links, verified online/subtitle links and existing order. Enable `--include-originals` so both languages appear. That skill owns HTML locations and navigation: new previews stay in `.file-index/`, with legacy sibling HTML maintained only when required for existing links. Deliver its offline HTML entry without starting editing or background sync services. Do not create wrapper folders or a separate translation index.
 
 The screenshot validator checks local assets, image order/count and chronological section starts; it does not prove matching timestamp ranges, complete coverage or navigation reachability. Verify those separately against the source. Missing assets, mismatched sections/timestamps or unaccounted intervals fail delivery. Link the actual shared navigation and disclose actual limitations.
 

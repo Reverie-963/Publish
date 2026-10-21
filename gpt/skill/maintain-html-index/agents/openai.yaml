@@ -1,4 +1,4 @@
 interface:
   display_name: "文件索引与预览"
-  short_description: "为本地文件夹生成简洁目录和预览，默认连接源文件编辑、保存与自动同步"
-  default_prompt: "使用 $maintain-html-index 为指定文件夹生成可编辑、自动同步的本机浏览入口，并保留离线 HTML 预览，不额外撰写报告。"
+  short_description: "为本地文件夹生成纯离线目录和独立阅读页，支持多种格式，无需后台服务"
+  default_prompt: "使用 $maintain-html-index 为指定文件夹生成纯离线 HTML 索引和预览，不启动本地服务，不额外撰写报告。"
