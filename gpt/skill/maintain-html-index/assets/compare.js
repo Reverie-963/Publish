@@ -132,7 +132,7 @@
   document.body.classList.add('is-compare-pane');
   const current=files.find(f=>urlFor(f).pathname===location.pathname),host=document.querySelector('.toc-toolbar');
   if(current&&host&&window.parent!==window){
-   const name=document.createElement('span');name.className='compare-inline-file';name.textContent=current.label.split('/').pop();name.title=current.label;host.append(name);
+   const original=document.querySelector('.reader-heading .original-link'),name=original?original.cloneNode(false):document.createElement('span');name.className='compare-inline-file';name.textContent=current.label.split('/').pop();name.title=current.label+(original?' · 打开原件':'');host.append(name);
    const send=(type,extra={})=>window.parent.postMessage({channel,type,id:current.id,...extra},'*');
    window.addEventListener('message',event=>{const data=event.data;if(event.source===window.parent&&data?.channel===channel&&data.type==='peer')send('ready');});
    quickAccess(current,host,{

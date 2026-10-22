@@ -85,7 +85,7 @@ function load(relative,query='',store){
  child.window.eval(read('reader.js'));child.window.eval(read('page-zoom.js'));child.window.eval(read('compare.js'));
  const toolbar=child.window.document.querySelector('.toc-toolbar'),choice=toolbar.querySelector('.compare-inline-file');assert(choice);
  assert(child.window.document.documentElement.querySelector(':scope > .page-zoom-floating'));assert(toolbar.querySelector('.toc-toggle'));
- assert.equal(choice.tagName,'SPAN');assert.equal(choice.textContent,doc.path.split('/').pop());assert(!toolbar.querySelector('select')); assert(sent.some(m=>m.type==='ready'&&m.id===doc.id));
+ assert.equal(choice.tagName,'A');assert.equal(choice.getAttribute('href'),child.window.document.querySelector('.original-link').getAttribute('href'));assert.equal(choice.dataset.nativeOpen,child.window.document.querySelector('.original-link').dataset.nativeOpen);assert.equal(choice.textContent,doc.path.split('/').pop());assert(!toolbar.querySelector('select')); assert(sent.some(m=>m.type==='ready'&&m.id===doc.id));
  child.window.dispatchEvent(new child.window.MessageEvent('message',{source:parent,data:{channel,type:'peer',id:other.id}}));
  assert(sent.at(-1).type==='ready');
  const layout=child.window.document.querySelector('.layout'),side=child.window.document.querySelector('.reader-sidebar');

@@ -5,3 +5,7 @@ blockquote.callout-important{margin:20px 0 28px;padding:12px 18px;border-left:4p
 .callout-important>p:first-child>strong:first-child{font-size:1.3em;line-height:1.4;color:#b42318}
 .callout-important a{color:inherit;text-decoration:underline}.callout-important p:first-child{margin-top:0}.callout-important p:last-child{margin-bottom:0}
 @media(prefers-color-scheme:dark){blockquote.callout-important{background:#3a2024;color:#ffd9d5;border-left-color:#ff958b}.callout-important>p:first-child>strong:first-child{color:#ffb4ac}}
+
+/* Quiet document actions share one row beneath the title. */
+.reader-links{grid-column:1 / -1;display:flex;align-items:center;flex-wrap:wrap;gap:6px 20px;font-size:13px;line-height:1.6}.reader-links a{white-space:nowrap}
+@media print{.reader-links{display:none}}

@@ -32,7 +32,7 @@ def command(args,timeout=120):
  if r.returncode:raise RuntimeError((r.stderr or r.stdout or '转换失败')[-500:])
  return r
 
-def page(title,body,out,root,index):
+def page(title,body,out,root,index,original=""):
  css='\n'.join((SKILL/'assets'/name).read_text() for name in ['reader.css','preview.css','code.css','scrollbar.css','page-zoom.css','compare.css'])
  math=rel(out,root/'.file-index/assets/katex/katex.min.css')
  toc=''
@@ -42,7 +42,7 @@ def page(title,body,out,root,index):
  match=re.match(r'\s*(<h1\b[^>]*>.*?</h1>)',body,re.S)
  heading=match.group(1) if match else '<h1>'+ESC(title)+'</h1>'
  if match:body=body[match.end():]
- header='<header class="reader-heading">'+heading+'<a class="return-index" href="'+rel(out,index)+'">返回总索引</a></header>'
+ header='<header class="reader-heading">'+heading+'<div class="reader-links"><a class="return-index" href="'+rel(out,index)+'">返回总索引</a>'+original+'</div></header>'
  return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/file-catalog.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/compare.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/native-original.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
@@ -238,13 +238,14 @@ def main():
   else:
    try:body,notes,status=render(src,out,args,mapping)
    except Exception as e:notes=[str(e)];status='error';body='<h1>'+ESC(src.name)+'</h1>'+notice('未能生成内容预览：'+str(e))
-   body+='<p><a href="'+rel(out,src)+'"'+(' data-native-open="'+ESC(native_links[str(src)],quote=True)+'"' if str(src) in native_links else '')+' target="_blank" rel="noopener">打开原件</a></p>'
-   write(out,page(src.name,body,out,root,index))
+   original='<a class="original-link" href="'+rel(out,src)+'"'+(' data-native-open="'+ESC(native_links[str(src)],quote=True)+'"' if str(src) in native_links else '')+' target="_blank" rel="noopener">打开原件</a>'
+   write(out,page(src.name,body,out,root,index,original))
    rec={'id':out.parent.name,'path':sourcepath,'label':src.name,'type':src.suffix.lower().lstrip('.') or '无扩展名','source':rel(index,src),'preview':rel(index,out),'sha256':sha,'status':status,'notes':notes,'links_hash':links_hash if src.suffix.lower()=='.md' else None}
   preview_text=out.read_text()
-  # Update only the generator's final original-file anchor, never document links.
-  marker=preview_text.rfind('>打开原件</a>')
-  start=preview_text.rfind('<a ',0,marker)
+  # Prefer the marked header link; legacy cached pages used a final footer anchor.
+  original_match=re.search(r'<a class="original-link"[^>]*',preview_text)
+  marker=original_match.end() if original_match else preview_text.rfind('>打开原件</a>')
+  start=original_match.start() if original_match else preview_text.rfind('<a ',0,marker)
   if marker>=0 and start>=0:
    anchor=re.sub(r' data-native-open="[^"]*"','',preview_text[start:marker])
    if str(src) in native_links:anchor+=' data-native-open="'+ESC(native_links[str(src)],quote=True)+'"'
