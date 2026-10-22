@@ -42,3 +42,6 @@
 .page-zoom-floating{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));z-index:100;gap:4px;padding:4px 10px;border-radius:8px;background:var(--bg);box-shadow:0 2px 14px #0000000d;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,6px);transition:opacity 160ms ease,transform 160ms ease,visibility 160ms;}
 .page-zoom-floating.is-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0)}
 @media(prefers-reduced-motion:reduce){.page-zoom-floating{transition:none;transform:translate(-50%,0)}}
+
+/* Keep the index toggle close to its title without moving the content column. */
+body:not(.is-compare-pane) .index-layout:not(.tools-compact)>.index-sidebar .index-actions{justify-content:flex-end;margin-right:-12px}
