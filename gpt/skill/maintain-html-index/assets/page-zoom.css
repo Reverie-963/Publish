@@ -45,3 +45,8 @@
 
 /* Keep the index toggle close to its title without moving the content column. */
 body:not(.is-compare-pane) .index-layout:not(.tools-compact)>.index-sidebar .index-actions{justify-content:flex-end;margin-right:-12px}
+
+/* Preserve the reader's grid space, but pin controls to the viewport at all scroll depths. */
+.reader-rail-anchor{grid-column:1;grid-row:1;min-width:0;pointer-events:none;align-self:start}
+.layout>.reader-sidebar.reader-rail-fixed{position:fixed;box-sizing:border-box}
+@media print{.reader-rail-anchor,.reader-rail-fixed{display:none!important}}

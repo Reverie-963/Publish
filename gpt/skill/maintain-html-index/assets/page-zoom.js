@@ -21,6 +21,29 @@
     host = sidebar.querySelector('.toc-toolbar');
   }
   if (!host) return;
+  // Sticky rails can be pushed upward by the document's bottom edge.
+  // A grid anchor reserves their space while the real rail stays viewport-fixed.
+  const readerRail=layout?.querySelector(':scope > .reader-sidebar');
+  let railAnchor=null,pinFrame=0;
+  if(readerRail){
+    railAnchor=document.createElement('div');railAnchor.className='reader-rail-anchor';railAnchor.setAttribute('aria-hidden','true');readerRail.before(railAnchor);
+    readerRail.classList.add('reader-rail-fixed');
+  }
+  function pinRail(){
+    if(!readerRail||!railAnchor)return;
+    const scale=Number(document.body.style.zoom)||1,box=railAnchor.getBoundingClientRect();
+    readerRail.style.left=box.left+'px';readerRail.style.width=box.width+'px';
+    const compact=layout.classList.contains('tools-compact')||layout.classList.contains('toc-compact')||document.body.classList.contains('is-compare-pane');
+    const height=compact?readerRail.getBoundingClientRect().height/scale:0;
+    if(railAnchor.style.height!==height+'px')railAnchor.style.height=height+'px';
+  }
+  function schedulePin(){if(!pinFrame)pinFrame=requestAnimationFrame(()=>{pinFrame=0;pinRail();});}
+  if(readerRail){
+    if(window.ResizeObserver){const observer=new ResizeObserver(schedulePin);observer.observe(railAnchor);observer.observe(readerRail);}
+    const changes=new MutationObserver(schedulePin);changes.observe(readerRail,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','aria-expanded']});
+    // Vertical scrolling never changes the rail position; layout changes do.
+    window.addEventListener('pageshow',schedulePin);
+  }
   function fitTools() {
     const scale=Number(document.body.style.zoom)||1;
     document.body.style.setProperty('--content-scale',String(scale));
@@ -35,9 +58,10 @@
       }
     }
   }
-  fitTools();
-  window.addEventListener('resize', fitTools);
-  document.addEventListener('page-scalechange', fitTools);
+  const fitAndPin=()=>{fitTools();pinRail();};
+  fitAndPin();
+  window.addEventListener('resize', fitAndPin);
+  document.addEventListener('page-scalechange', fitAndPin);
   const currentScript = document.currentScript;
   const script = currentScript?.src || document.querySelector('script[src$="page-zoom.js"]')?.src;
   const storageKey = 'file-index:page-scale:v1:' + (script ? new URL('.', script).href : location.pathname);

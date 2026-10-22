@@ -1,7 +1,7 @@
 'use strict';
 const {JSDOM}=require('jsdom'),fs=require('fs'),path=require('path'),assert=require('assert'),os=require('os'),cp=require('child_process');
 const root=path.resolve(process.argv[2]),skill=path.resolve(__dirname,'..'),records=JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).files;
-const doms=[];function parse(html){const d=new JSDOM(html,{url:'https://preview-test.invalid/preview.html',runScripts:'outside-only'});doms.push(d);return d;}
+const doms=[];function parse(html){const d=new JSDOM(html,{url:'https://preview-test.invalid/preview.html',runScripts:'outside-only',pretendToBeVisual:true});doms.push(d);return d;}
 const content=r=>fs.readFileSync(path.join(root,decodeURIComponent(r.preview)),'utf8');
 try{
  for(const extension of ['c','py','m','json','yaml','txt']){
