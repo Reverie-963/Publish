@@ -50,7 +50,11 @@ body.is-compare-pane article{margin-top:18px}
 
 /* Document actions use the same quiet icon treatment as navigation. */
 .document-actions{display:flex;align-items:center;gap:2px;flex:0 0 auto}.document-action{display:grid;place-items:center;width:28px;height:32px;padding:5px;color:var(--muted);border:0;background:transparent;transition:color 120ms ease}.document-action:hover{color:var(--link);text-decoration:none}.document-action:focus-visible{outline:2px solid var(--link);outline-offset:2px}
-.layout.has-reader-tools.has-document-actions{--rail:264px}
+/* Balance the left navigation with quiet document actions in the right rail. */
+.layout>.document-actions{grid-column:3;grid-row:1;justify-self:end;align-self:start;position:sticky;z-index:21;zoom:var(--ui-scale,1);background:var(--bg)}
+.layout.tools-compact>.document-actions,.layout.toc-compact>.document-actions{grid-column:1;grid-row:1;padding:6px 0}
+.layout.has-document-actions.tools-compact>.reader-sidebar .toc-toolbar,.layout.has-document-actions.toc-compact>.reader-sidebar .toc-toolbar{padding-right:70px}
+body.is-compare-pane .layout.has-document-actions>.reader-sidebar .toc-toolbar{padding-right:0}
 body.is-compare-pane .toc-toolbar,body.is-compare-pane .index-actions{gap:4px}
 body.is-compare-pane .index-layout{display:block;max-width:960px;padding-top:0}body.is-compare-pane .index-sidebar{top:0!important;background:var(--bg);padding:6px 0}body.is-compare-pane .index-layout>main{margin-top:18px}
 @media(prefers-reduced-motion:reduce){.document-action{transition:none}}

@@ -14,7 +14,13 @@
    ['.return-index','返回总索引','<path d="m3 10 9-7 9 7M5 9v12h14V9M10 21v-7h4v7"/>'],
    ['.original-link','打开原件','<path d="M14 3h7v7M21 3l-11 11M10 5H4v15h15v-6"/>']
   ]){const link=links.querySelector(selector);if(!link)continue;link.classList.add('document-action');link.title=label;link.setAttribute('aria-label',label);link.innerHTML=svg(icon);group.append(link);}
-  host.append(group);links.remove();document.querySelector('.layout')?.classList.add('has-document-actions');
+  const layout=document.querySelector('.layout');
+  if(inPane||!layout){host.append(group);}else{
+   layout.append(group);
+   const align=()=>{group.style.top=host.parentElement.style.top||'0px';};
+   window.addEventListener('resize',align);document.addEventListener('page-scalechange',align);align();
+  }
+  links.remove();layout?.classList.add('has-document-actions');
  }
 
  const dragType='application/x-file-index-preview';
