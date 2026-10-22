@@ -49,7 +49,7 @@
   let scale = 1;
   const ui = document.createElement('div'); ui.className = 'page-zoom';
   ui.innerHTML = '<button type="button" data-scale-action="out" aria-label="缩小页面" title="缩小">−</button><button type="button" class="page-scale" aria-label="当前缩放 100%，恢复原始大小" title="恢复 100% · Cmd/Ctrl+0">100%</button><button type="button" data-scale-action="in" aria-label="放大页面" title="放大">+</button>';
-  const floating=host.classList.contains('toc-toolbar');
+  const floating=true;
   let hideTimer,hovered=false,keyboardInput=true;
   function hideZoom(){clearTimeout(hideTimer);hovered=false;ui.classList.remove('is-visible');if(ui.contains(document.activeElement))document.activeElement.blur();ui.inert=true;ui.setAttribute('aria-hidden','true');}
   function scheduleHide(){

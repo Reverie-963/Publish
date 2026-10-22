@@ -295,6 +295,7 @@ def main():
  def index_page(current,title,node,prefix='',nav=''):
   substitutions={'TITLE':ESC(title),'NAV_LINKS':nav,'TREE':branch_html(node,current,prefix),'SCROLLBAR_STYLE':(SKILL/'assets/scrollbar.css').read_text(),'PAGE_ZOOM_STYLE':(SKILL/'assets/page-zoom.css').read_text(),'PAGE_ZOOM_SCRIPT':rel(current,assets/'page-zoom.js')}
   body=template.replace('<!doctype html>','<!doctype html>\n'+MARKER)
+  body=body.replace('</head>','<link rel="stylesheet" href="'+rel(current,assets/'compare.css')+'"></head>').replace('</body>','<script src="'+rel(current,assets/'file-catalog.js')+'"></script><script src="'+rel(current,assets/'compare.js')+'"></script></body>')
   write(current,re.sub(r'\{\{(TITLE|NAV_LINKS|TREE|SCROLLBAR_STYLE|PAGE_ZOOM_STYLE|PAGE_ZOOM_SCRIPT)\}\}',lambda m:substitutions[m.group(1)],body))
  index_page(index,args.title or root.name,tree)
  directory_records=[]

@@ -5,6 +5,18 @@
  const files=(window.FILE_INDEX_CATALOG||[]).filter(f=>/^\.file-index\/previews\/(?:[a-f0-9]{16}|link-\d+)\/preview\.html$/.test(f.preview));
  const urlFor=f=>new URL(f.preview,root);
  const inPane=new URLSearchParams(location.search).get('compare-pane')==='1';
+ const indexId='@index';
+ const svg=paths=>'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths+'</svg>';
+ function documentActions(host){
+  const links=document.querySelector('.reader-links');if(!links)return;
+  const group=document.createElement('div');group.className='document-actions';
+  for(const [selector,label,icon] of [
+   ['.return-index','返回总索引','<path d="m3 10 9-7 9 7M5 9v12h14V9M10 21v-7h4v7"/>'],
+   ['.original-link','打开原件','<path d="M14 3h7v7M21 3l-11 11M10 5H4v15h15v-6"/>']
+  ]){const link=links.querySelector(selector);if(!link)continue;link.classList.add('document-action');link.title=label;link.setAttribute('aria-label',label);link.innerHTML=svg(icon);group.append(link);}
+  host.append(group);links.remove();document.querySelector('.layout')?.classList.add('has-document-actions');
+ }
+
  const dragType='application/x-file-index-preview';
  const validId=id=>files.some(f=>f.id===id);
  function dropZones(accept){
@@ -130,10 +142,11 @@
  const channel='file-index:compare:v1';
  if(inPane){
   document.body.classList.add('is-compare-pane');
-  const current=files.find(f=>urlFor(f).pathname===location.pathname),host=document.querySelector('.toc-toolbar');
+  const isIndex=!!document.querySelector('.tree'),current=isIndex?{id:indexId,label:'总索引'}:files.find(f=>urlFor(f).pathname===location.pathname),host=document.querySelector('.toc-toolbar,.index-actions');
   if(current&&host&&window.parent!==window){
    const name=document.createElement('span');name.className='compare-inline-file';name.textContent=current.label.split('/').pop();name.title=current.label;host.append(name);
    const send=(type,extra={})=>window.parent.postMessage({channel,type,id:current.id,...extra},'*');
+   if(!isIndex)documentActions(host);
    const exit=document.createElement('button');exit.type='button';exit.className='compare-exit';exit.title='单独查看此文件';exit.setAttribute('aria-label','返回单文件');
    exit.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16"/></svg>';
    exit.addEventListener('click',()=>send('exit'));host.append(exit);
@@ -143,10 +156,15 @@
     if(link.classList.contains('return-index')){event.preventDefault();send('index');return;}
     // Document links must retain pane mode, just like the quick-access tree.
     const url=new URL(link.href),next=files.find(f=>urlFor(f).pathname===url.pathname&&urlFor(f).protocol===url.protocol&&urlFor(f).host===url.host);
-    if(next&&next.id!==current.id){event.preventDefault();send('select',{next:next.id});}
+    if(next&&next.id!==current.id){event.preventDefault();send('select',{next:next.id});return;}
+    if(isIndex&&url.protocol===root.protocol&&url.host===root.host&&url.pathname.startsWith(root.pathname+'.file-index/folders/')&&/\/[^/]+\/index\.html$/.test(url.pathname)){
+     event.preventDefault();url.searchParams.set('compare-pane','1');location.assign(url.href);
+    }else if(isIndex&&link.closest('nav')&&url.protocol===root.protocol&&url.host===root.host&&url.pathname.startsWith(root.pathname)){
+     event.preventDefault();send('index');
+    }
    });
    window.addEventListener('message',event=>{const data=event.data;if(event.source===window.parent&&data?.channel===channel&&data.type==='peer')send('ready');});
-   quickAccess(current,host,{
+   if(!isIndex)quickAccess(current,host,{
     switchFile:next=>send('select',{next}),compare:(side,next)=>send('place',{side,next}),
     dragStart:next=>send('drag-start',{next}),dragEnd:()=>send('drag-end')
    });
@@ -157,8 +175,11 @@
  if(document.body.classList.contains('compare-page')){
   const names=[...document.querySelectorAll('.compare-file')],selected=['',''],frames=[...document.querySelectorAll('.compare-pane iframe')],indexURL=new URL(document.querySelector('.compare-shell').dataset.index,location.href);
   if(files.length<2){document.querySelector('.compare-panes').innerHTML='<p class="compare-empty">至少需要两个可用文件才能对照。</p>';return;}
-  function load(){const params=new URLSearchParams(location.hash.slice(1));let left=files.find(f=>f.id===params.get('left'))||files[0],right=files.find(f=>f.id===params.get('right')&&f.id!==left.id)||files.find(f=>f.id!==left.id);
-   [left,right].forEach((f,i)=>{selected[i]=f.id;names[i].textContent=f.label.split('/').pop();names[i].title=f.label;const url=urlFor(f);url.searchParams.set('compare-pane','1');if(frames[i].getAttribute('src')!==url.href){frames[i].parentElement.classList.remove('reader-ready');frames[i].dataset.fileId=f.id;frames[i].src=url.href;}frames[i].title=f.label;});
+  const indexFile={id:indexId,label:'总索引'};
+  const destination=f=>f.id===indexId?new URL(indexURL):urlFor(f);
+  const resolve=id=>id===indexId?indexFile:files.find(f=>f.id===id);
+  function load(){const params=new URLSearchParams(location.hash.slice(1));const left=resolve(params.get('left'))||files[0],right=resolve(params.get('right'))||files.find(f=>f.id!==left.id);
+   [left,right].forEach((f,i)=>{selected[i]=f.id;names[i].textContent=f.label.split('/').pop();names[i].title=f.label;const url=destination(f);url.searchParams.set('compare-pane','1');if(frames[i].dataset.fileId!==f.id||!frames[i].getAttribute('src')){frames[i].parentElement.classList.remove('reader-ready');frames[i].dataset.fileId=f.id;frames[i].src=url.href;}frames[i].title=f.label;});
   }
   const update=()=>{location.hash=new URLSearchParams({left:selected[0],right:selected[1]}).toString();};
   const place=(side,id)=>{
@@ -172,8 +193,8 @@
   window.addEventListener('message',event=>{
    const i=frames.findIndex(frame=>frame.contentWindow===event.source),data=event.data;
    if(i<0||data?.channel!==channel||data.id!==frames[i].dataset.fileId)return;
-   if(data.type==='exit'){location.assign(urlFor(files.find(f=>f.id===selected[i])).href);
-   }else if(data.type==='index'){location.assign(indexURL.href);
+   if(data.type==='exit'){location.assign(destination(resolve(selected[i])).href);
+   }else if(data.type==='index'){if(selected[i]===indexId){const url=new URL(indexURL);url.searchParams.set('compare-pane','1');frames[i].src=url.href;}else{selected[i]=indexId;update();}
    }else if(data.type==='ready'){
     // First handshake also supplies the other pane's choice; no polling.
     const first=!frames[i].parentElement.classList.contains('reader-ready');
@@ -181,7 +202,7 @@
    }else if(data.type==='drag-start'&&validId(data.next)){zones.show();
    }else if(data.type==='drag-end'){zones.hide();
    }else if(data.type==='place'&&['left','right'].includes(data.side)&&validId(data.next)){place(data.side,data.next);
-   }else if(data.type==='select'&&data.next!==selected[1-i]&&files.some(f=>f.id===data.next)){
+   }else if(data.type==='select'&&files.some(f=>f.id===data.next)){
     selected[i]=data.next;update();peer(1-i);
    }
   });
@@ -193,6 +214,7 @@
   if(!validId(id)||id===current.id)return;
   compareURL.hash=new URLSearchParams({left:side==='left'?id:current.id,right:side==='right'?id:current.id}).toString();location.assign(compareURL.href);
  };
+ documentActions(host);
  const zones=dropZones(compare);
  quickAccess(current,host,{compare,dragStart:(_,pointer=false)=>zones.show(pointer),dragEnd:zones.hide,pointerMove:zones.mark,pointerDrop:(x,id)=>compare(x<innerWidth/2?'left':'right',id)});
 })();

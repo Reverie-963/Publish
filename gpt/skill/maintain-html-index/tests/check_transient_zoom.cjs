@@ -3,7 +3,7 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),path=require('path'),assert=requ
 const skill=path.resolve(__dirname,'..'),root=path.resolve(process.argv[2]);
 const records=JSON.parse(fs.readFileSync(path.join(root,'.file-index/manifest.json'))).files;
 const record=records.find(r=>r.type==='md');
-const d=new JSDOM(fs.readFileSync(path.join(root,decodeURIComponent(record.preview)),'utf8'),{url:'https://offline-test.invalid/preview.html',runScripts:'outside-only',pretendToBeVisual:true});
+const d=new JSDOM(fs.readFileSync(path.join(root,decodeURIComponent(process.argv[3]||record.preview)),'utf8'),{url:'https://offline-test.invalid/preview.html',runScripts:'outside-only',pretendToBeVisual:true});
 (async()=>{try{
  const w=d.window,doc=w.document;w.scrollTo=()=>{};
  const timers=new Map();let id=0;

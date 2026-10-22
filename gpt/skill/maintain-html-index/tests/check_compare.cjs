@@ -14,7 +14,7 @@ function load(relative,query='',store){
  const preferences=new Map(),reader=load(doc.preview,'',preferences);reader.reconfigure({windowTop:{}});reader.window.eval(read('reader.js'));reader.window.eval(read('page-zoom.js'));reader.window.__navigations=[];reader.window.__navigate=url=>reader.window.__navigations.push(url);reader.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
  const rd=reader.window.document,quick=rd.querySelector('.quick-toggle'),outline=rd.querySelector('.toc-toggle'),tree=rd.querySelector('.quick-panel');
  assert(quick&&outline&&tree.hidden);assert(!rd.querySelector('.quick-actions').hidden);assert.equal(quick.parentElement.firstElementChild,quick);
- assert.deepEqual([...quick.parentElement.children].filter(e=>!e.classList.contains('toc-label')).map(e=>e.className),['quick-toggle','toc-toggle','quick-actions']);
+ assert.deepEqual([...quick.parentElement.children].filter(e=>!e.classList.contains('toc-label')).map(e=>e.className),['quick-toggle','toc-toggle','quick-actions','document-actions']);
  outline.click();assert.equal(outline.getAttribute('aria-expanded'),'true');quick.click();assert(!tree.hidden);assert.equal(outline.getAttribute('aria-expanded'),'false');
  assert.equal(tree.querySelectorAll('a').length,manifest.files.filter(r=>!r.external).length);assert.equal(tree.querySelector('[aria-current="page"]').dataset.fileId,doc.id);assert(tree.querySelector('details summary'));
  const locate=rd.querySelector('.quick-locate'),expand=rd.querySelector('.quick-expand'),current=tree.querySelector('[aria-current="page"]');
@@ -76,9 +76,15 @@ function load(relative,query='',store){
  message(frames[0].contentWindow,{channel,type:'ready',id:doc.id});assert(frames[0].parentElement.classList.contains('reader-ready'));
  for(const [i,file] of [[0,doc],[1,other]]){
   message(frames[i].contentWindow,{channel,type:'exit',id:file.id});assert.equal(pair.window.__navigations.at(-1),urlFor(file.preview));
-  message(frames[i].contentWindow,{channel,type:'index',id:file.id});assert.equal(pair.window.__navigations.at(-1),new URL(d.querySelector('.compare-shell').dataset.index,pair.window.location.href).href);
+  const peerSrc=frames[1-i].src,navigationCount=pair.window.__navigations.length;
+  message(frames[i].contentWindow,{channel,type:'index',id:file.id});await new Promise(r=>setTimeout(r,20));
+  assert.equal(frames[i].dataset.fileId,'@index');assert.equal(frames[1-i].src,peerSrc);assert.equal(pair.window.__navigations.length,navigationCount,'index changes only the chosen pane');
+  const indexURL=new URL(d.querySelector('.compare-shell').dataset.index,pair.window.location.href);indexURL.searchParams.set('compare-pane','1');assert.equal(frames[i].src,indexURL.href);
+  message(frames[i].contentWindow,{channel,type:'ready',id:'@index'});assert(frames[i].parentElement.classList.contains('reader-ready'));
+  message(frames[i].contentWindow,{channel,type:'select',id:'@index',next:file.id});await new Promise(r=>setTimeout(r,20));assert.equal(frames[i].src,urlFor(file.preview)+'?compare-pane=1');assert.equal(frames[1-i].src,peerSrc);
+
  }
- message(frames[1].contentWindow,{channel,type:'select',id:other.id,next:doc.id});assert.equal(frames[1].dataset.fileId,other.id,'cannot select the peer file');
+
  message(frames[1].contentWindow,{channel,type:'select',id:other.id,next:'outside'});assert.equal(frames[1].dataset.fileId,other.id);
  const left=frames[0].getAttribute('src');message(frames[1].contentWindow,{channel,type:'select',id:other.id,next:third.id});await new Promise(r=>setTimeout(r,20));
  assert.equal(frames[1].src,urlFor(third.preview)+'?compare-pane=1');assert.equal(frames[0].getAttribute('src'),left,'changing right preserves left frame');
@@ -91,7 +97,7 @@ function load(relative,query='',store){
  const toolbar=child.window.document.querySelector('.toc-toolbar'),choice=toolbar.querySelector('.compare-inline-file');assert(choice);
  assert(child.window.document.documentElement.querySelector(':scope > .page-zoom-floating'));assert(toolbar.querySelector('.toc-toggle'));
  assert.equal(choice.tagName,'SPAN');assert.equal(choice.textContent,doc.path.split('/').pop());assert(!toolbar.querySelector('select')); assert(sent.some(m=>m.type==='ready'&&m.id===doc.id));
- assert.equal(child.window.getComputedStyle(child.window.document.querySelector('.reader-heading')).display,'block');
+ assert.equal(child.window.getComputedStyle(child.window.document.querySelector('.reader-heading')).display,'none');
  toolbar.querySelector('.compare-exit').click();assert.equal(sent.at(-1).type,'exit');assert.equal(sent.at(-1).id,doc.id);
  child.window.document.querySelector('.return-index').click();assert.equal(sent.at(-1).type,'index');
  const bodyLink=child.window.document.createElement('a');bodyLink.href=urlFor(third.preview);child.window.document.querySelector('article').append(bodyLink);bodyLink.click();assert.equal(sent.at(-1).type,'select');assert.equal(sent.at(-1).next,third.id);bodyLink.remove();
@@ -102,8 +108,16 @@ function load(relative,query='',store){
  const quickChild=toolbar.querySelector('.quick-toggle');assert(quickChild);quickChild.click();
  const childFile=child.window.document.querySelector('.quick-panel a[data-file-id="'+third.id+'"]');childFile.click();assert.equal(sent.at(-1).type,'select');assert.equal(sent.at(-1).next,third.id);
  childFile.dispatchEvent(new child.window.KeyboardEvent('keydown',{key:'Enter',altKey:true,bubbles:true,cancelable:true}));assert.equal(sent.at(-1).type,'place');assert.equal(sent.at(-1).side,'left');
+ assert(toolbar.querySelector('.return-index.document-action'));assert(toolbar.querySelector('.original-link.document-action'));assert(!child.window.document.querySelector('.reader-links'));
  const reset=child.window.document.querySelector('.page-scale');reset.click();assert.equal(reset.textContent,'100%');
  child.window.close();
+ const indexRelative=path.relative(root,require('url').fileURLToPath(new URL(d.querySelector('.compare-shell').dataset.index,pair.window.location.href)));
+ const index=load(indexRelative,'?compare-pane=1'),indexSent=[];Object.defineProperty(index.window,'parent',{value:{postMessage:data=>indexSent.push(data)}});
+ index.window.__navigations=[];index.window.__navigate=url=>index.window.__navigations.push(url);index.window.eval(read('page-zoom.js'));index.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
+ assert(indexSent.some(m=>m.type==='ready'&&m.id==='@index'));assert(index.window.document.querySelector('.index-actions .compare-exit'));
+ const link=[...index.window.document.querySelectorAll('.tree a')].find(a=>a.href===urlFor(doc.preview));assert(link);link.click();assert.equal(indexSent.at(-1).type,'select');assert.equal(indexSent.at(-1).next,doc.id);
+ index.window.document.querySelector('.folder-link').click();assert(new URL(index.window.__navigations.at(-1)).searchParams.get('compare-pane')==='1');
+ index.window.document.querySelector('.compare-exit').click();assert.equal(indexSent.at(-1).type,'exit');index.window.close();
  pair.window.close();
  console.log('PASS: offline catalog, file tree and sidebar modes, independent file selection, valid return link, drag targets and keyboard placement, invalid IDs confined to catalog, unified pinned toolbar and validated frame messages (DOM simulation).');
 })().catch(e=>{console.error(e);process.exitCode=1;});
