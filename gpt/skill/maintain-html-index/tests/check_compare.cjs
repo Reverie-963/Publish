@@ -64,15 +64,20 @@ function load(relative,query='',store){
  assert(!restoredDoc.querySelector('.quick-panel').hidden);assert([...restoredDoc.querySelectorAll('.quick-panel details')].every(d=>!d.open));
  restoredDoc.querySelector('.quick-locate').click();assert(restoredDoc.querySelector('.quick-panel [aria-current="page"]').closest('details').open);restored.window.close();
  const pane=load(doc.preview,'?compare-pane=1');pane.window.eval(read('reader.js'));pane.window.eval(read('page-zoom.js'));pane.window.eval(read('compare.js'));assert(pane.window.document.body.classList.contains('is-compare-pane'));assert(!pane.window.document.querySelector('.quick-drop-zones'));pane.window.close();
- const pair=load('.file-index/compare.html','#left='+doc.id+'&right='+other.id);pair.window.eval(read('compare.js'));
+ const pair=load('.file-index/compare.html','#left='+doc.id+'&right='+other.id);pair.window.__navigations=[];pair.window.__navigate=url=>pair.window.__navigations.push(url);pair.window.eval(read('compare.js').replaceAll('location.assign(', 'window.__navigate('));
  const d=pair.window.document,frames=[...d.querySelectorAll('iframe')],names=[...d.querySelectorAll('.compare-file')];assert(!d.querySelector('select'));
- assert.equal(frames[0].src,urlFor(doc.preview)+'?compare-pane=1');assert.equal(frames[1].src,urlFor(other.preview)+'?compare-pane=1');assert.equal(d.querySelector('#compare-return').href,urlFor(doc.preview));
+ assert.equal(frames[0].src,urlFor(doc.preview)+'?compare-pane=1');assert.equal(frames[1].src,urlFor(other.preview)+'?compare-pane=1');assert(!d.querySelector('.compare-top'));assert(!d.querySelector('#compare-return'));
  // Frame identity plus current catalog ID gate the offline bridge.
  const message=(source,data)=>pair.window.dispatchEvent(new pair.window.MessageEvent('message',{source,data}));
  const channel='file-index:compare:v1';
+ message(pair.window,{channel,type:'exit',id:doc.id});assert.equal(pair.window.__navigations.length,0);
  message(pair.window,{channel,type:'ready',id:doc.id});assert(!frames[0].parentElement.classList.contains('reader-ready'));
  message(frames[0].contentWindow,{channel,type:'ready',id:other.id});assert(!frames[0].parentElement.classList.contains('reader-ready'));
  message(frames[0].contentWindow,{channel,type:'ready',id:doc.id});assert(frames[0].parentElement.classList.contains('reader-ready'));
+ for(const [i,file] of [[0,doc],[1,other]]){
+  message(frames[i].contentWindow,{channel,type:'exit',id:file.id});assert.equal(pair.window.__navigations.at(-1),urlFor(file.preview));
+  message(frames[i].contentWindow,{channel,type:'index',id:file.id});assert.equal(pair.window.__navigations.at(-1),new URL(d.querySelector('.compare-shell').dataset.index,pair.window.location.href).href);
+ }
  message(frames[1].contentWindow,{channel,type:'select',id:other.id,next:doc.id});assert.equal(frames[1].dataset.fileId,other.id,'cannot select the peer file');
  message(frames[1].contentWindow,{channel,type:'select',id:other.id,next:'outside'});assert.equal(frames[1].dataset.fileId,other.id);
  const left=frames[0].getAttribute('src');message(frames[1].contentWindow,{channel,type:'select',id:other.id,next:third.id});await new Promise(r=>setTimeout(r,20));
@@ -85,7 +90,11 @@ function load(relative,query='',store){
  child.window.eval(read('reader.js'));child.window.eval(read('page-zoom.js'));child.window.eval(read('compare.js'));
  const toolbar=child.window.document.querySelector('.toc-toolbar'),choice=toolbar.querySelector('.compare-inline-file');assert(choice);
  assert(child.window.document.documentElement.querySelector(':scope > .page-zoom-floating'));assert(toolbar.querySelector('.toc-toggle'));
- assert.equal(choice.tagName,'A');assert.equal(choice.getAttribute('href'),child.window.document.querySelector('.original-link').getAttribute('href'));assert.equal(choice.dataset.nativeOpen,child.window.document.querySelector('.original-link').dataset.nativeOpen);assert.equal(choice.textContent,doc.path.split('/').pop());assert(!toolbar.querySelector('select')); assert(sent.some(m=>m.type==='ready'&&m.id===doc.id));
+ assert.equal(choice.tagName,'SPAN');assert.equal(choice.textContent,doc.path.split('/').pop());assert(!toolbar.querySelector('select')); assert(sent.some(m=>m.type==='ready'&&m.id===doc.id));
+ assert.equal(child.window.getComputedStyle(child.window.document.querySelector('.reader-heading')).display,'block');
+ toolbar.querySelector('.compare-exit').click();assert.equal(sent.at(-1).type,'exit');assert.equal(sent.at(-1).id,doc.id);
+ child.window.document.querySelector('.return-index').click();assert.equal(sent.at(-1).type,'index');
+ const bodyLink=child.window.document.createElement('a');bodyLink.href=urlFor(third.preview);child.window.document.querySelector('article').append(bodyLink);bodyLink.click();assert.equal(sent.at(-1).type,'select');assert.equal(sent.at(-1).next,third.id);bodyLink.remove();
  child.window.dispatchEvent(new child.window.MessageEvent('message',{source:parent,data:{channel,type:'peer',id:other.id}}));
  assert(sent.at(-1).type==='ready');
  const layout=child.window.document.querySelector('.layout'),side=child.window.document.querySelector('.reader-sidebar');

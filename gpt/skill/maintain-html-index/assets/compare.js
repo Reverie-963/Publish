@@ -132,8 +132,19 @@
   document.body.classList.add('is-compare-pane');
   const current=files.find(f=>urlFor(f).pathname===location.pathname),host=document.querySelector('.toc-toolbar');
   if(current&&host&&window.parent!==window){
-   const original=document.querySelector('.reader-heading .original-link'),name=original?original.cloneNode(false):document.createElement('span');name.className='compare-inline-file';name.textContent=current.label.split('/').pop();name.title=current.label+(original?' · 打开原件':'');host.append(name);
+   const name=document.createElement('span');name.className='compare-inline-file';name.textContent=current.label.split('/').pop();name.title=current.label;host.append(name);
    const send=(type,extra={})=>window.parent.postMessage({channel,type,id:current.id,...extra},'*');
+   const exit=document.createElement('button');exit.type='button';exit.className='compare-exit';exit.title='单独查看此文件';exit.setAttribute('aria-label','返回单文件');
+   exit.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6-6 6 6 6M4 12h16"/></svg>';
+   exit.addEventListener('click',()=>send('exit'));host.append(exit);
+   document.addEventListener('click',event=>{
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    const link=event.target.closest('a[href]');if(!link)return;
+    if(link.classList.contains('return-index')){event.preventDefault();send('index');return;}
+    // Document links must retain pane mode, just like the quick-access tree.
+    const url=new URL(link.href),next=files.find(f=>urlFor(f).pathname===url.pathname&&urlFor(f).protocol===url.protocol&&urlFor(f).host===url.host);
+    if(next&&next.id!==current.id){event.preventDefault();send('select',{next:next.id});}
+   });
    window.addEventListener('message',event=>{const data=event.data;if(event.source===window.parent&&data?.channel===channel&&data.type==='peer')send('ready');});
    quickAccess(current,host,{
     switchFile:next=>send('select',{next}),compare:(side,next)=>send('place',{side,next}),
@@ -144,10 +155,10 @@
   window.dispatchEvent(new Event('resize'));return;
  }
  if(document.body.classList.contains('compare-page')){
-  const names=[...document.querySelectorAll('.compare-file')],selected=['',''],frames=[...document.querySelectorAll('.compare-pane iframe')],back=document.getElementById('compare-return');
+  const names=[...document.querySelectorAll('.compare-file')],selected=['',''],frames=[...document.querySelectorAll('.compare-pane iframe')],indexURL=new URL(document.querySelector('.compare-shell').dataset.index,location.href);
   if(files.length<2){document.querySelector('.compare-panes').innerHTML='<p class="compare-empty">至少需要两个可用文件才能对照。</p>';return;}
   function load(){const params=new URLSearchParams(location.hash.slice(1));let left=files.find(f=>f.id===params.get('left'))||files[0],right=files.find(f=>f.id===params.get('right')&&f.id!==left.id)||files.find(f=>f.id!==left.id);
-   [left,right].forEach((f,i)=>{selected[i]=f.id;names[i].textContent=f.label.split('/').pop();names[i].title=f.label;const url=urlFor(f);url.searchParams.set('compare-pane','1');if(frames[i].getAttribute('src')!==url.href){frames[i].parentElement.classList.remove('reader-ready');frames[i].dataset.fileId=f.id;frames[i].src=url.href;}frames[i].title=f.label;});back.href=urlFor(left).href;
+   [left,right].forEach((f,i)=>{selected[i]=f.id;names[i].textContent=f.label.split('/').pop();names[i].title=f.label;const url=urlFor(f);url.searchParams.set('compare-pane','1');if(frames[i].getAttribute('src')!==url.href){frames[i].parentElement.classList.remove('reader-ready');frames[i].dataset.fileId=f.id;frames[i].src=url.href;}frames[i].title=f.label;});
   }
   const update=()=>{location.hash=new URLSearchParams({left:selected[0],right:selected[1]}).toString();};
   const place=(side,id)=>{
@@ -161,7 +172,9 @@
   window.addEventListener('message',event=>{
    const i=frames.findIndex(frame=>frame.contentWindow===event.source),data=event.data;
    if(i<0||data?.channel!==channel||data.id!==frames[i].dataset.fileId)return;
-   if(data.type==='ready'){
+   if(data.type==='exit'){location.assign(urlFor(files.find(f=>f.id===selected[i])).href);
+   }else if(data.type==='index'){location.assign(indexURL.href);
+   }else if(data.type==='ready'){
     // First handshake also supplies the other pane's choice; no polling.
     const first=!frames[i].parentElement.classList.contains('reader-ready');
     frames[i].parentElement.classList.add('reader-ready');if(first)peer(i);
