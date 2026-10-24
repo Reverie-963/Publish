@@ -12,16 +12,16 @@ function open(hash='',blocked=false){
 }
 const tick=()=>new Promise(r=>setTimeout(r,40));
 (async()=>{
- let p=open(),{w,d,frames,messages,send,pointer}=p;const handle=d.querySelector('.compare-handle'),sync=d.querySelector('.compare-sync'),ids=frames.map(f=>f.dataset.fileId);
+ let p=open(),{w,d,frames,messages,send,pointer}=p;const handle=d.querySelector('.compare-handle'),ids=frames.map(f=>f.dataset.fileId);
  frames.forEach((f,i)=>send(i,{type:'ready',position:{y:0,ratio:0,width:600}}));messages.length=0;
- send(0,{type:'scroll',y:400,ratio:.4,width:600,cause:'user'});assert.equal(messages.length,0,'independent by default');sync.click();assert.equal(messages.at(-1).type,'sync-scroll');assert.equal(messages.at(-1).i,1);
+ send(0,{type:'scroll',y:400,ratio:.4,width:600,cause:'user'});assert.equal(messages.length,0,'independent by default');send(1,{type:'toggle-sync'});assert.equal(messages.at(-1).type,'sync-scroll');assert.equal(messages.at(-1).i,1);
  const count=messages.length;send(1,{type:'scroll',y:800,ratio:.4,width:600,cause:'sync'});assert.equal(messages.length,count,'no feedback loop');send(1,{type:'scroll',y:1000,ratio:.5,width:600,cause:'user'});assert.equal(messages.at(-1).i,0,'reverse direction works');
  const sources=frames.map(f=>f.src),windows=frames.map(f=>f.contentWindow);handle.click();await tick();assert.deepEqual(frames.map(f=>f.src),sources,'swap keeps frames loaded');assert(frames.every((f,i)=>f.contentWindow===windows[i]));assert.equal(new URLSearchParams(w.location.hash.slice(1)).get('left'),ids[1]);assert.equal(frames[1].parentElement.style.order,'0');
- d.querySelector('.compare-panes').getBoundingClientRect=()=>({width:1028,height:800});const beforeHash=w.location.hash;
+ d.querySelector('.compare-panes').getBoundingClientRect=()=>({width:1000,height:800});const beforeHash=w.location.hash;
  pointer('pointerdown',handle,500);pointer('pointermove',d,650);pointer('pointerup',d,650);handle.click();assert.equal(w.location.hash,beforeHash,'drag never swaps');assert(Math.abs(parseFloat(d.querySelector('.compare-panes').style.getPropertyValue('--left-size'))-.65)<.001);
  handle.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert(Math.abs(parseFloat(d.querySelector('.compare-panes').style.getPropertyValue('--left-size'))-.67)<.001);
  pointer('pointerdown',handle,500);pointer('pointermove',d,700);pointer('pointercancel',d,700);assert(Math.abs(parseFloat(d.querySelector('.compare-panes').style.getPropertyValue('--left-size'))-.67)<.001,'cancel restores ratio');
- w.dispatchEvent(new w.Event('pagehide'));const hash=w.location.hash;p.dom.window.close();p=open(hash);assert.equal(p.d.querySelector('.compare-sync').getAttribute('aria-pressed'),'true');assert(Math.abs(parseFloat(p.d.querySelector('.compare-panes').style.getPropertyValue('--left-size'))-.67)<.001);p.send(0,{type:'ready'});assert.equal(p.messages[0].type,'restore-position');assert.equal(p.messages[0].position.y,1000,'saved position follows swapped file');
- p.dom.window.close();p=open('',true);p.d.querySelector('.compare-sync').click();p.d.querySelector('.compare-handle').click();await tick();p.dom.window.close();
+ w.dispatchEvent(new w.Event('pagehide'));const hash=w.location.hash;p.dom.window.close();p=open(hash);assert(!p.d.querySelector('.compare-sync'),'no outer control taking reading space');assert(Math.abs(parseFloat(p.d.querySelector('.compare-panes').style.getPropertyValue('--left-size'))-.67)<.001);p.send(0,{type:'ready'});assert.equal(p.messages[0].type,'restore-position');assert.equal(p.messages[0].position.y,1000,'saved position follows swapped file');assert(p.messages.some(m=>m.type==='sync-state'&&m.i===1&&m.show&&m.enabled),'right pane gets the visible enabled control');assert(p.messages.some(m=>m.type==='sync-state'&&m.i===0&&!m.show),'left pane hides the control');
+ p.dom.window.close();p=open('',true);p.send(1,{type:'toggle-sync'});p.d.querySelector('.compare-handle').click();await tick();p.dom.window.close();
  console.log('PASS: bidirectional sync without echo, swap without reload, drag/cancel/keyboard resize, refresh state and blocked storage.');
 })().catch(e=>{console.error(e);process.exit(1);});
