@@ -43,7 +43,7 @@ def page(title,body,out,root,index,original=""):
  heading=match.group(1) if match else '<h1>'+ESC(title)+'</h1>'
  if match:body=body[match.end():]
  header='<header class="reader-heading">'+heading+'<div class="reader-links"><a class="return-index" href="'+rel(out,index)+'">返回总索引</a>'+original+'</div></header>'
- return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/file-catalog.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/compare.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/native-original.js')+'"></script></body></html>'
+ return '<!doctype html>\n'+MARKER+'\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+ESC(title)+'</title><style>'+css+'</style><link rel="stylesheet" href="'+math+'"></head><body id="reader-top">'+toc+'<div class="layout"><article>'+header+body+'</article></div><script src="'+rel(out,root/'.file-index/assets/reader.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/page-zoom.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/reading-position.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/file-catalog.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/compare.js')+'"></script><script src="'+rel(out,root/'.file-index/assets/native-original.js')+'"></script></body></html>'
 
 def notice(text):return '<p class="notice">'+ESC(text)+'</p>'
 def table(rows):return '<div class="scroll"><table>'+''.join('<tr>'+''.join('<'+('th' if i==0 else 'td')+'>'+ESC(str(c) if c is not None else '')+'</'+('th' if i==0 else 'td')+'>' for c in row)+'</tr>' for i,row in enumerate(rows))+'</table></div>'
@@ -208,7 +208,7 @@ def main():
  work.mkdir(exist_ok=True);assets=work/'assets';assets.mkdir(exist_ok=True)
  # Claim only a new directory before generation, so an interrupted run is recoverable.
  if not manifest.exists():write(manifest,json.dumps({'generator':'codex-folder-index-v2','files':[]}))
- for name in ['reader.js','page-zoom.js','compare.js','compare.css','native-original.js']:write(assets/name,(SKILL/'assets'/name).read_text())
+ for name in ['reader.js','page-zoom.js','reading-position.js','compare.js','compare.css','native-original.js']:write(assets/name,(SKILL/'assets'/name).read_text())
  katex=SKILL/'node_modules/katex/dist'
  if katex.is_dir():
   (assets/'katex').mkdir(exist_ok=True);shutil.copy2(katex/'katex.min.css',assets/'katex/katex.min.css');shutil.copytree(katex/'fonts',assets/'katex/fonts',dirs_exist_ok=True)
@@ -293,10 +293,10 @@ def main():
   return text
  template=(SKILL/'assets/navigation-template.html').read_text()
  def index_page(current,title,node,prefix='',nav=''):
-  substitutions={'TITLE':ESC(title),'NAV_LINKS':nav,'TREE':branch_html(node,current,prefix),'SCROLLBAR_STYLE':(SKILL/'assets/scrollbar.css').read_text(),'PAGE_ZOOM_STYLE':(SKILL/'assets/page-zoom.css').read_text(),'PAGE_ZOOM_SCRIPT':rel(current,assets/'page-zoom.js')}
+  substitutions={'TITLE':ESC(title),'NAV_LINKS':nav,'TREE':branch_html(node,current,prefix),'SCROLLBAR_STYLE':(SKILL/'assets/scrollbar.css').read_text(),'PAGE_ZOOM_STYLE':(SKILL/'assets/page-zoom.css').read_text(),'PAGE_ZOOM_SCRIPT':rel(current,assets/'page-zoom.js'),'READING_POSITION_SCRIPT':rel(current,assets/'reading-position.js')}
   body=template.replace('<!doctype html>','<!doctype html>\n'+MARKER)
   body=body.replace('</head>','<link rel="stylesheet" href="'+rel(current,assets/'compare.css')+'"></head>').replace('</body>','<script src="'+rel(current,assets/'file-catalog.js')+'"></script><script src="'+rel(current,assets/'compare.js')+'"></script></body>')
-  write(current,re.sub(r'\{\{(TITLE|NAV_LINKS|TREE|SCROLLBAR_STYLE|PAGE_ZOOM_STYLE|PAGE_ZOOM_SCRIPT)\}\}',lambda m:substitutions[m.group(1)],body))
+  write(current,re.sub(r'\{\{(TITLE|NAV_LINKS|TREE|SCROLLBAR_STYLE|PAGE_ZOOM_STYLE|PAGE_ZOOM_SCRIPT|READING_POSITION_SCRIPT)\}\}',lambda m:substitutions[m.group(1)],body))
  index_page(index,args.title or root.name,tree)
  directory_records=[]
  for key,data in folders.items():

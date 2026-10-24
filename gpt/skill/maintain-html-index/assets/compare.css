@@ -59,3 +59,22 @@ body.is-compare-pane .toc-toolbar,body.is-compare-pane .index-actions{gap:4px}
 body.is-compare-pane .index-layout{display:block;max-width:960px;padding-top:0}body.is-compare-pane .index-sidebar{top:0!important;background:var(--bg);padding:6px 0}body.is-compare-pane .index-layout>main{margin-top:18px}
 @media(prefers-reduced-motion:reduce){.document-action{transition:none}}
 @media print{.document-actions{display:none}}
+
+/* Central click/drag handle and a quiet right-edge scroll link. */
+.compare-shell{position:relative;padding-right:34px}
+.compare-panes{gap:0;grid-template-columns:minmax(0,var(--left-size,1fr)) 28px minmax(0,var(--right-size,1fr))}
+.compare-divider{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0}
+.compare-handle,.compare-sync{display:grid;place-items:center;border:0;padding:4px;color:var(--muted);background:transparent;border-radius:5px;touch-action:none}
+.compare-handle{width:28px;height:44px;cursor:col-resize}
+.compare-handle:hover,.compare-sync:hover{color:var(--link);background:color-mix(in srgb,var(--muted) 7%,transparent)}
+.compare-sync{position:absolute;right:2px;top:calc(50% - 18px);width:30px;height:36px;cursor:pointer}
+.compare-sync[aria-pressed="true"]{color:var(--link);background:color-mix(in srgb,var(--link) 10%,transparent)}
+.compare-resizing{user-select:none;cursor:col-resize}
+.compare-resizing::after{content:"";position:fixed;inset:0;z-index:100;background:transparent;cursor:col-resize}
+.compare-resizing .compare-handle{position:relative;z-index:101}
+@media(max-width:760px){
+ .compare-panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,var(--left-size,1fr)) 28px minmax(0,var(--right-size,1fr))}
+ .compare-handle{width:44px;height:28px;cursor:row-resize}.compare-handle svg{transform:rotate(90deg)}
+ .compare-resizing,.compare-resizing::after{cursor:row-resize}
+}
+@media print{.compare-divider,.compare-sync{display:none}.compare-shell{padding:0}}

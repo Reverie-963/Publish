@@ -70,7 +70,7 @@
         if (!state || state.version !== 1 || !Array.isArray(state.open)) continue;
         const open = new Set(state.open);
         branches.forEach(node => { node.open = open.has(key(node)); });
-        if (Number.isFinite(state.scroll)) requestAnimationFrame(() => window.scrollTo(0, state.scroll));
+        if (!window.FileIndexPosition && Number.isFinite(state.scroll)) requestAnimationFrame(() => window.scrollTo(0, state.scroll));
         break;
       } catch (_) {}
     }

@@ -26,7 +26,7 @@ fs.mkdirSync(asset,{recursive:true});
 fs.copyFileSync(path.join(packageRoot,'dist','katex.min.css'),path.join(asset,'katex.min.css'));
 fs.cpSync(path.join(packageRoot,'dist','fonts'),path.join(asset,'fonts'),{recursive:true});
 fs.copyFileSync(path.join(packageRoot,'LICENSE'),path.join(asset,'KaTeX-LICENSE.txt'));
-for(const name of ['reader.css','reader.js','page-zoom.js'])fs.copyFileSync(path.join(__dirname,'..','assets',name),path.join(asset,name));
+for(const name of ['reader.css','reader.js','page-zoom.js','reading-position.js'])fs.copyFileSync(path.join(__dirname,'..','assets',name),path.join(asset,name));
 const parsed=new Map();
 let activeFile='',mathCount=0;
 const md=new MarkdownIt({html:false,linkify:false,typographer:false,highlight:require('./highlight_code.cjs').highlight}).use(texmath,{engine:katex,delimiters:['dollars','brackets']}).use(require('./important_blocks.cjs'));
@@ -87,7 +87,7 @@ for(const file of files){activeFile=file;mathCount=0;const out=mapping.get(file)
  const heading=headingMatch?headingMatch[1]:'<h1>'+esc(data.title)+'</h1>';
  if(headingMatch)body=body.slice(headingMatch[0].length);
  const readerHeader='<header class="reader-heading">'+heading+returnLink+'</header>';
- const page=`<!doctype html>\n${marker}\n<html lang="${file.endsWith('.original.md')?'en':'zh-CN'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="md-source-sha256" content="${before.get(file)}"><title>${esc(data.title)}</title><style>${['reader.css','code.css','scrollbar.css','page-zoom.css'].map(name=>fs.readFileSync(path.join(__dirname,'..','assets',name),'utf8')).join('\n')}</style><link rel="stylesheet" href="${relative(out,path.join(asset,'katex.min.css'))}"></head><body id="reader-top"><button class="toc-toggle" type="button" aria-controls="reader-toc" aria-expanded="false" aria-label="展开目录">目录 →</button><aside id="reader-toc" class="toc-panel" aria-label="目录" inert><div class="toc-title">目录</div><nav aria-label="文稿目录">${toc(data.headings)}</nav></aside><div class="layout"><article>${readerHeader}${body}<a class="back-top" href="#reader-top">返回顶部 ↑</a></article></div><script src="${relative(out,path.join(asset,'reader.js'))}" defer></script><script src="${relative(out,path.join(asset,'page-zoom.js'))}" defer></script></body></html>`;
+ const page=`<!doctype html>\n${marker}\n<html lang="${file.endsWith('.original.md')?'en':'zh-CN'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="md-source-sha256" content="${before.get(file)}"><title>${esc(data.title)}</title><style>${['reader.css','code.css','scrollbar.css','page-zoom.css'].map(name=>fs.readFileSync(path.join(__dirname,'..','assets',name),'utf8')).join('\n')}</style><link rel="stylesheet" href="${relative(out,path.join(asset,'katex.min.css'))}"></head><body id="reader-top"><button class="toc-toggle" type="button" aria-controls="reader-toc" aria-expanded="false" aria-label="展开目录">目录 →</button><aside id="reader-toc" class="toc-panel" aria-label="目录" inert><div class="toc-title">目录</div><nav aria-label="文稿目录">${toc(data.headings)}</nav></aside><div class="layout"><article>${readerHeader}${body}<a class="back-top" href="#reader-top">返回顶部 ↑</a></article></div><script src="${relative(out,path.join(asset,'reader.js'))}" defer></script><script src="${relative(out,path.join(asset,'page-zoom.js'))}" defer></script><script src="${relative(out,path.join(asset,'reading-position.js'))}" defer></script></body></html>`;
  fs.writeFileSync(out,page);stat.documents.push({source:path.relative(root,file),html:path.relative(root,out),sha256:before.get(file),headings:data.headings.length,images:(body.match(/<img /g)||[]).length,math:mathCount});
 }
 // Normalize generated leaf-based indexes without changing document bodies.
@@ -112,8 +112,10 @@ if(opt.indexes)for(const file of all.filter(f=>path.basename(f)==='index.html'))
   const zoomStyle='<style id="page-zoom-style">'+fs.readFileSync(path.join(__dirname,'..','assets','page-zoom.css'),'utf8')+'</style>';
   updated=updated.includes('id="page-zoom-style"')?updated.replace(/<style id="page-zoom-style">[\s\S]*?<\/style>/,()=>zoomStyle):updated.replace('</head>',()=>zoomStyle+'\n</head>');
   updated=updated.replace(/<script id="page-zoom-script"[^>]*><\/script>\s*/g,'');
+  updated=updated.replace(/<script id="reading-position-script"[^>]*><\/script>\s*/g,'');
+  const positionScript='<script id="reading-position-script" src="'+relative(file,path.join(asset,'reading-position.js'))+'"></script>\n';
   const zoomScript='<script id="page-zoom-script" src="'+relative(file,path.join(asset,'page-zoom.js'))+'"></script>\n';
-  updated=updated.includes('<!-- codex-index-state:start -->')?updated.replace('<!-- codex-index-state:start -->',()=>zoomScript+'<!-- codex-index-state:start -->'):updated.replace('</body>',()=>zoomScript+'</body>');
+  updated=updated.includes('<!-- codex-index-state:start -->')?updated.replace('<!-- codex-index-state:start -->',()=>zoomScript+positionScript+'<!-- codex-index-state:start -->'):updated.replace('</body>',()=>zoomScript+positionScript+'</body>');
   const stateScript='<!-- codex-index-state:start -->\n<script>\n'+fs.readFileSync(path.join(__dirname,'..','assets','navigation.js'),'utf8')+'</script>\n<!-- codex-index-state:end -->';
   const oldState=/<!-- codex-index-state:start -->[\s\S]*?<!-- codex-index-state:end -->/;
   updated=oldState.test(updated)?updated.replace(oldState,()=>stateScript):updated.replace('</body>',()=>stateScript+'\n</body>');
