@@ -153,7 +153,7 @@
    const name=document.createElement('span');name.className='compare-inline-file';name.textContent=current.label.split('/').pop();name.title=current.label;host.append(name);
    const send=(type,extra={})=>window.parent.postMessage({channel,type,id:current.id,...extra},'*');
    if(!isIndex)documentActions(host);
-   // The outer page owns the setting; only the visual right pane shows its control.
+   // The outer page owns one setting shared by the controls in both toolbars.
    const sync=document.createElement('button');sync.type='button';sync.className='compare-sync';sync.hidden=true;
    sync.innerHTML=svg('<path d="m10 13 4-2M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>');
    sync.addEventListener('click',()=>send('toggle-sync'));
@@ -205,7 +205,7 @@
   const persist=()=>{try{localStorage.setItem(settingsKey,JSON.stringify({ratio,synced,selected,positions}));}catch(_){}};
   const queueSave=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(persist,120);};
   const post=(i,type,extra={})=>frames[i].contentWindow?.postMessage({channel,type,id:selected[i],...extra},'*');
-  const paintSync=()=>frames.forEach((_,i)=>post(i,'sync-state',{show:i===1,enabled:synced}));
+  const paintSync=()=>frames.forEach((_,i)=>post(i,'sync-state',{show:true,enabled:synced}));
   const toggleSync=()=>{synced=!synced;paintSync();if(synced&&positions[lastActive])post(1-lastActive,'sync-scroll',{position:positions[lastActive]});persist();};
   const divider=document.createElement('div');divider.className='compare-divider';
   const handle=document.createElement('button');handle.type='button';handle.className='compare-handle';handle.innerHTML=svg('<path d="M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4"/>');divider.append(handle);panes.append(divider);
@@ -250,7 +250,7 @@
     frames[i].parentElement.classList.add('reader-ready');
     if(first){if(validPosition(positions[i]))post(i,'restore-position',{position:positions[i]});else if(validPosition(data.position))positions[i]=data.position;peer(i);}
     paintSync();
-   }else if(data.type==='toggle-sync'&&i===1){toggleSync();
+   }else if(data.type==='toggle-sync'){toggleSync();
    }else if(data.type==='scroll'&&validPosition(data)){
     positions[i]={x:data.x,y:data.y,ratio:data.ratio,width:data.width};queueSave();
     if(data.cause==='user'){lastActive=i;if(synced)post(1-i,'sync-scroll',{position:positions[i]});}
